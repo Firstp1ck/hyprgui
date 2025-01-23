@@ -1,16 +1,22 @@
 <div align='center'>
 
-<h2>HyprGUI <img src='https://raw.githubusercontent.com/hyprutils/.github/refs/heads/main/hyprutils_transparent.png'width='18' height='18'></h2>
+<h2>HyprGUI <img src='https://raw.githubusercontent.com/hyprutils-archive/.github/refs/heads/main/hyprutils_transparent.png'width='18' height='18'></h2>
 
 <img src='hyprgui.png' width='200' height='200'>
 
 An unofficial GUI for configuring Hyprland, built with GTK4 and Rust. 🚀🦀<br>
-Comes with a custom [hyprparser](https://github.com/nnyyxxxx/hyprparser) for Hyprland's configuration file. (Rust btw) 🦀
+Comes with a custom [hyprparser](https://github.com/hyprutils-archive/hyprparser) for Hyprland's configuration file. (Rust btw) 🦀
 
 ## Preview
 ![Preview](.github/preview.png)
 
 </div>
+
+> [!CAUTION]
+> This is a backup repository for HyprGUI. It may be not fully up-to-date with the original repository, which is gone now but was located at [HyprUtils/hyprgui]<br>
+> It is not recommended to run this code **at all** :)
+
+[HyprUtils/hyprgui]: https://github.com/HyprUtils/hyprgui
 
 ## Installation
 

@@ -27,6 +27,12 @@ cd hyprgui
 ./build.sh
 ```
 
+The `build.sh` script automates the installation process by:
+- Checking and installing required dependencies (Rust and GTK4)
+- Building the application with cargo
+- Installing the binary to `/usr/bin`
+- Setting up the desktop application entry
+
 ## Building from source
 1. Install Rust (preferably `rustup`) through your distro's package or [the official script](https://www.rust-lang.org/tools/install)
 2. Install `git` and `gtk4`

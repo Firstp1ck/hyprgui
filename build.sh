@@ -66,4 +66,19 @@ if ! cp target/release/hyprgui /usr/bin/; then
     error "Failed to copy binary to /usr/bin"
 fi
 
+# Create applications directory if it doesn't exist
+log "Checking for applications directory..."
+if [ ! -d "$HOME/.local/share/applications" ]; then
+    log "Creating applications directory..."
+    if ! mkdir -p "$HOME/.local/share/applications"; then
+        error "Failed to create applications directory"
+    fi
+fi
+
+# Copy desktop file
+log "Copying desktop file..."
+if ! cp hyprgui.desktop "$HOME/.local/share/applications/"; then
+    error "Failed to copy desktop file"
+fi
+
 log "Build completed successfully!"

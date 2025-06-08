@@ -4,7 +4,7 @@
 
 <img src='hyprgui.png' width='200' height='200'>
 
-An unofficial GUI for configuring Hyprland, built with GTK4 and Rust for Arch. 🚀🦀<br>
+An unofficial GUI for configuring Hyprland, built with GTK4 and Rust for Arch.
 Comes with a custom hyprparser for Hyprland's configuration file.
 
 ## Preview
@@ -13,9 +13,11 @@ Comes with a custom hyprparser for Hyprland's configuration file.
 </div>
 
 > [!CAUTION]
-> This is a backup repository for [HyprUtils/hyprgui]<br>. It may be not fully up-to-date.
-> It is not recommended to run this code **at all** :)
+> This is a backup repository for [HyprUtils/hyprgui]. 
+> It may be not fully up-to-date.
+> It is not recommended to run this code.
 
+> [INFO]
 > Currently Testing and bringing it up to date
 
 [HyprUtils/hyprgui]: https://github.com/HyprUtils/hyprgui

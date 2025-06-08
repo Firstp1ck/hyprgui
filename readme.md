@@ -4,8 +4,8 @@
 
 <img src='hyprgui.png' width='200' height='200'>
 
-An unofficial GUI for configuring Hyprland, built with GTK4 and Rust. 🚀🦀<br>
-Comes with a custom [hyprparser](https://github.com/hyprutils-archive/hyprparser) for Hyprland's configuration file. (Rust btw) 🦀
+An unofficial GUI for configuring Hyprland, built with GTK4 and Rust for Arch. 🚀🦀<br>
+Comes with a custom hyprparser for Hyprland's configuration file.
 
 ## Preview
 ![Preview](.github/preview.png)
@@ -18,74 +18,19 @@ Comes with a custom [hyprparser](https://github.com/hyprutils-archive/hyprparser
 
 [HyprUtils/hyprgui]: https://github.com/HyprUtils/hyprgui
 
-## Installation
-
-[![Packaging status](https://repology.org/badge/vertical-allrepos/hyprgui.svg)](https://repology.org/project/hyprgui/versions)
-
-### GitHub Releases
-See HyprGUI's [releases page](https://github.com/nnyyxxxx/hyprgui/releases) for downloadable binaries.
-
-### Arch Linux
-There are 2 different [AUR](https://aur.archlinux.org) packages available:
-
-- [hyprgui](https://aur.archlinux.org/packages/hyprgui) - Latest release built from source
-- [hyprgui-bin](https://aur.archlinux.org/packages/hyprgui-bin) - Latest release in binary form
-
-Install the preferred package with:
+Install the package with:
 ```bash
-git clone https://aur.archlinux.org/<package>.git
-cd <package>
-makepkg -si
-```
-
-Or, if you're using an [AUR Helper](https://wiki.archlinux.org/title/AUR_helpers), it's even simpler (using [paru](https://github.com/Morganamilo/paru) as an example):
-```bash
-paru -S <package>
-```
-
-### Nix
-You can install HyprGUI with Nix in three ways:
-
-#### NixOS Configuration
-Add the following Nix code to your NixOS Configuration, usually located in `/etc/nixos/configuration.nix`
-```nix
-environment.systemPackages = [
-  pkgs.hyprgui
-];
-```
-
-#### nix-env
-On NixOS:
-```bash
-nix-env -iA nixos.hyprgui
-```
-
-On Non NixOS:
-```bash
-# without flakes:
-nix-env -iA nixpkgs.hyprgui
-# with flakes:
-nix profile install nixpkgs#hyprgui
-```
-
-#### nix-shell
-```bash
-nix-shell -p hyprgui
+git clone https://github.com/Firstp1ck/hyprgui.git
+cd hyprgui
+./build.sh
 ```
 
 ## Building from source
 1. Install Rust (preferably `rustup`) through your distro's package or [the official script](https://www.rust-lang.org/tools/install)
-2. Install `git`, `pango` and `gtk4`
+2. Install `git` and `gtk4`
 3. Clone this repository:
-`git clone https://github.com/nnyyxxxx/hyprgui && cd hyprgui`
-4. Compile the app with `cargo build --release` or run it directly with `cargo run --release`
-
-## TODO:
-- [x] Implement GUI
-- [x] Implement parser
-- [x] Improve the readme
-- [ ] Improve parser
-- [ ] Improve GUI
+`git clone https://github.com/Firstp1ck/hyprgui.git && cd hyprgui`
+4. Compile the app with `cargo build --release`, run it directly with `cargo run --release` or use `build.sh` script.
 
 ## Credits:
 - [Nyx](https://github.com/nnyyxxxx) - Implementing the parser, rest of the GUI, and maintaining the project
@@ -93,5 +38,3 @@ nix-shell -p hyprgui
 - [Vaxry](https://github.com/vaxerski) - Hyprland
 - [rust-gtk](https://github.com/gtk-rs/gtk4-rs) - The GTK4 library
 - [Hyprland](https://github.com/hyprwm/Hyprland) - The wayland compositor
-
-<h6 align='center'>Copyright (C) 2024 HyprUtils<h6>

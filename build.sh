@@ -38,6 +38,17 @@ else
     log "Rust is already installed"
 fi
 
+# Check if GTK4 is installed
+if ! pkg-config --exists gtk4; then
+    log "GTK4 is not installed. Installing GTK4..."
+    if ! sudo pacman -S --noconfirm --needed gtk4; then
+        error "Failed to install GTK4"
+    fi
+    log "GTK4 installation completed"
+else
+    log "GTK4 is already installed"
+fi
+
 # Check if cargo is available
 if ! command -v cargo &> /dev/null; then
     error "Cargo is not installed. Please install Rust toolchain properly"

@@ -13,8 +13,10 @@ Comes with a custom hyprparser for Hyprland's configuration file.
 </div>
 
 > [!CAUTION]
-> This is a backup repository for HyprGUI. It may be not fully up-to-date with the original repository, which is gone now but was located at [HyprUtils/hyprgui]<br>
+> This is a backup repository for [HyprUtils/hyprgui]<br>. It may be not fully up-to-date.
 > It is not recommended to run this code **at all** :)
+
+> Currently Testing and bringing it up to date
 
 [HyprUtils/hyprgui]: https://github.com/HyprUtils/hyprgui
 

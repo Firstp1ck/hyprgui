@@ -17,7 +17,7 @@ Comes with a custom hyprparser for Hyprland's configuration file.
 > It may be not fully up-to-date.
 > It is not recommended to run this code.
 
-> [INFO]
+> [!INFO]
 > Currently Testing and bringing it up to date
 
 [HyprUtils/hyprgui]: https://github.com/HyprUtils/hyprgui

@@ -1,6 +1,6 @@
 use gtk::{
-    gdk, prelude::*, Box, Button, ColorButton, Entry, Frame, Image, Label, Orientation, Popover,
-    SpinButton, Switch, Widget,
+    Box, Button, ColorButton, Entry, Frame, Image, Label, Orientation, Popover, SpinButton, Switch,
+    Widget, gdk, prelude::*,
 };
 use hyprparser::HyprlandConfig;
 use std::cell::RefCell;

@@ -1239,7 +1239,7 @@ impl ConfigWidget {
                     &mut options,
                     "render_ahead_of_time",
                     "Render Ahead of Time",
-                    "[Warning: buggy] starts rendering before your monitor displays a frame in order to lower latency"
+                    "[Warning: buggy] starts rendering before your monitor displays a frame in order to lower latency",
                 );
                 WidgetBuilder::add_int_option(
                     &container,

@@ -1,4 +1,4 @@
-use gtk::{prelude::*, Box, Orientation, ScrolledWindow, Widget};
+use gtk::{Box, Orientation, ScrolledWindow, Widget, prelude::*};
 
 use hyprparser::HyprlandConfig;
 use std::cell::RefCell;

@@ -26,10 +26,10 @@ Install the package with:
 ```bash
 git clone https://github.com/Firstp1ck/hyprgui.git
 cd hyprgui
-./build.sh
+./setup.sh
 ```
 
-The `build.sh` script automates the installation process by:
+The `setup.sh` script automates the installation process by:
 - Checking and installing required dependencies (Rust and GTK4)
 - Building the application with cargo
 - Installing the binary to `/usr/bin`
@@ -40,7 +40,7 @@ The `build.sh` script automates the installation process by:
 2. Install `git` and `gtk4`
 3. Clone this repository:
 `git clone https://github.com/Firstp1ck/hyprgui.git && cd hyprgui`
-4. Compile the app with `cargo build --release`, run it directly with `cargo run --release` or use `build.sh` script.
+4. Compile the app with `cargo build --release`, run it directly with `cargo run --release` or use `setup.sh` script.
 
 ## Credits:
 - [Nyx](https://github.com/nnyyxxxx) - Implementing the parser, rest of the GUI, and maintaining the project

@@ -1,6 +1,6 @@
 <div align='center'>
 
-<h2>HyprGUI <img src='https://raw.githubusercontent.com/hyprutils-archive/.github/refs/heads/main/hyprutils_transparent.png'width='18' height='18'></h2>
+<h2>HyprGUI <img src='https://raw.githubusercontent.com/Firstp1ck/hyprgui/refs/heads/main/hyprgui_transparent.png'width='18' height='18'></h2>
 
 <img src='hyprgui.png' width='200' height='200'>
 
@@ -13,14 +13,14 @@ Comes with a custom hyprparser for Hyprland's configuration file.
 </div>
 
 > [!CAUTION]
-> This is a backup repository for [HyprUtils/hyprgui]. 
+> This was a backup repository for [HyprUtils/hyprgui]. 
 > It may be not fully up-to-date.
 > It is not recommended to run this code.
 
 > INFO:
-> Currently Testing and bringing it up to date
+> Currently Testing and bringing it up to date.
 
-[HyprUtils/hyprgui]: https://github.com/HyprUtils/hyprgui
+[HyprUtils/hyprgui]: https://github.com/HyprUtils-Archive/hyprgui
 
 Install the package with:
 ```bash

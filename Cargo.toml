@@ -1,6 +1,6 @@
 [package]
 name = "hyprgui"
-version = "0.1.7"
+version = "0.2.0"
 authors = ["Firstpick <firstpick1992@proton.me>"]
 license = "GPL-2.0"
 description = "GUI for configuring Hyprland."

@@ -415,6 +415,57 @@ impl WidgetBuilder {
         let mut value = String::new();
         let parts: Vec<&str> = name.split(':').collect();
 
+        // Special-case: the "layouts" UI page maps to top-level sections "dwindle" and "master"
+        // in hyprland.conf. Read those directly instead of a non-existent "layouts" section.
+        if category == "layouts" && parts.len() == 2 {
+            // Try main config first
+            if let Some(&(start, end)) = config.sections.get(parts[0]) {
+                if start < config.content.len() && end < config.content.len() {
+                    for line in &config.content[start..=end] {
+                        let trimmed = line.trim();
+                        if trimmed.starts_with(parts[1])
+                            && trimmed[parts[1].len()..].trim_start().starts_with('=')
+                        {
+                            if let Some(val) = line.split('=').nth(1) {
+                                value = val.trim().to_string();
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // If not found, scan sourced files
+            if value.is_empty() {
+                for idx in 0..config.sourced_content.len() {
+                    let section_key = format!("{}_{}", parts[0], idx);
+                    if let Some(&(start, end)) = config.sourced_sections.get(&section_key) {
+                        let sourced = &config.sourced_content[idx];
+                        if start < sourced.len() && end < sourced.len() {
+                            for line in &sourced[start..=end] {
+                                let trimmed = line.trim();
+                                if trimmed.starts_with(parts[1])
+                                    && trimmed[parts[1].len()..]
+                                        .trim_start()
+                                        .starts_with('=')
+                                {
+                                    if let Some(val) = line.split('=').nth(1) {
+                                        value = val.trim().to_string();
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if !value.is_empty() {
+                        break;
+                    }
+                }
+            }
+
+            return value;
+        }
+
         if parts.len() > 1 {
             if let Some(&(parent_start, parent_end)) = config.sections.get(category) {
                 if parent_start < config.content.len() && parent_end < config.content.len() {

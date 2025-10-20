@@ -86,6 +86,10 @@ pub fn get_option_limits(name: &str, description: &str) -> (f64, f64, f64) {
         "blur:brightness" => (0.0, 2.0, 0.1),
         "blur:vibrancy" | "blur:vibrancy_darkness" => (0.0, 1.0, 0.1),
         "blur:popups_ignorealpha" => (0.0, 1.0, 0.1),
+        // Layout-specific precise ranges
+        "dwindle:default_split_ratio" => (0.1, 1.9, 0.1),
+        "master:mfact" => (0.0, 1.0, 0.01),
+        "dwindle:special_scale_factor" | "master:special_scale_factor" => (0.0, 1.0, 0.1),
         "sensitivity" => (-1.0, 1.0, 0.1),
         "scroll_button" => (0.0, 9.0, 1.0),
         "scroll_factor" => (0.1, 10.0, 0.1),
@@ -520,6 +524,7 @@ impl ConfigGUI {
         });
 
         let categories = [
+            ("Monitors", "monitors"),
             ("General", "general"),
             ("Decoration", "decoration"),
             ("Animations", "animations"),

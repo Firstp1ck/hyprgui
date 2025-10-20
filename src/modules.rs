@@ -4,6 +4,9 @@ use hyprparser::HyprlandConfig;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
+use std::process::Command;
+
+use serde_json::Value;
 
 use crate::gui::add_dropdown_option;
 use crate::widgets::WidgetBuilder;
@@ -32,6 +35,97 @@ impl ConfigWidget {
         let first_section = Rc::new(RefCell::new(true));
 
         match category {
+            "monitors" => {
+                WidgetBuilder::add_section(
+                    &container,
+                    "Monitor Configuration",
+                    "Display configuration.",
+                    first_section.clone(),
+                );
+
+                // Monitors table
+                WidgetBuilder::add_section(
+                    &container,
+                    "Monitors",
+                    "Configure monitors",
+                    first_section.clone(),
+                );
+                // Monitors header row
+                let mon_header = Box::new(Orientation::Horizontal, 6);
+                let l_name = gtk::Label::new(Some("Name"));
+                l_name.set_width_request(140);
+                l_name.set_xalign(0.5);
+                let l_res = gtk::Label::new(Some("Resolution"));
+                l_res.set_width_request(220);
+                l_res.set_xalign(0.5);
+                let l_pos = gtk::Label::new(Some("Position"));
+                l_pos.set_width_request(140);
+                l_pos.set_xalign(0.5);
+                let l_scale = gtk::Label::new(Some("Scaling"));
+                l_scale.set_width_request(200);
+                l_scale.set_xalign(0.5);
+                mon_header.append(&l_name);
+                mon_header.append(&l_res);
+                mon_header.append(&l_pos);
+                mon_header.append(&l_scale);
+                container.append(&mon_header);
+                let list_mon = gtk::ListBox::new();
+                list_mon.set_selection_mode(gtk::SelectionMode::Single);
+                list_mon.set_widget_name("monitors_list_monitors");
+                list_mon.set_margin_top(10);
+                list_mon.set_margin_start(10);
+                list_mon.set_margin_end(10);
+                container.append(&list_mon);
+
+                let mon_controls = Box::new(Orientation::Horizontal, 8);
+                mon_controls.set_margin_top(8);
+                let add_mon_btn = gtk::Button::with_label("Add monitor");
+                mon_controls.append(&add_mon_btn);
+                container.append(&mon_controls);
+
+                // Workspaces table
+                WidgetBuilder::add_section(
+                    &container,
+                    "Workspaces",
+                    "Configure workspaces",
+                    first_section.clone(),
+                );
+                // Workspaces header row
+                let ws_header = Box::new(Orientation::Horizontal, 6);
+                let l_num = gtk::Label::new(Some("Number"));
+                l_num.set_width_request(80);
+                l_num.set_xalign(0.5);
+                let l_mon = gtk::Label::new(Some("Monitor Name"));
+                l_mon.set_width_request(140);
+                l_mon.set_xalign(0.5);
+                let l_def = gtk::Label::new(Some("Default"));
+                l_def.set_width_request(80);
+                l_def.set_xalign(0.5);
+                ws_header.append(&l_num);
+                ws_header.append(&l_mon);
+                ws_header.append(&l_def);
+                container.append(&ws_header);
+                let list_ws = gtk::ListBox::new();
+                list_ws.set_selection_mode(gtk::SelectionMode::Single);
+                list_ws.set_widget_name("monitors_list_workspaces");
+                list_ws.set_margin_top(10);
+                list_ws.set_margin_start(10);
+                list_ws.set_margin_end(10);
+                container.append(&list_ws);
+
+                let ws_controls = Box::new(Orientation::Horizontal, 8);
+                ws_controls.set_margin_top(8);
+                let add_ws_btn = gtk::Button::with_label("Add workspace");
+                ws_controls.append(&add_ws_btn);
+                container.append(&ws_controls);
+
+                // Store for later access in load_config
+                options.insert("monitors:list_monitors".to_string(), list_mon.upcast());
+                options.insert("monitors:add_monitor".to_string(), add_mon_btn.upcast());
+
+                options.insert("monitors:list_workspaces".to_string(), list_ws.upcast());
+                options.insert("monitors:add_workspace".to_string(), add_ws_btn.upcast());
+            }
             "general" => {
                 WidgetBuilder::add_section(
                     &container,
@@ -43,7 +137,7 @@ impl ConfigWidget {
                 WidgetBuilder::add_section(
                     &container,
                     "Layout",
-                    "Choose the default layout.",
+                    "Select the default tiling layout.",
                     first_section.clone(),
                 );
                 add_dropdown_option(
@@ -51,13 +145,13 @@ impl ConfigWidget {
                     &mut options,
                     "layout",
                     "Layout",
-                    "which layout to use.",
+                    "Which layout to use.",
                     &["dwindle", "master"],
                 );
                 WidgetBuilder::add_section(
                     &container,
                     "Gaps",
-                    "Change gaps in & out, workspaces.",
+                    "Configure inner/outer gaps and workspace gaps.",
                     first_section.clone(),
                 );
                 WidgetBuilder::add_int_option(
@@ -65,27 +159,27 @@ impl ConfigWidget {
                     &mut options,
                     "gaps_in",
                     "Gaps In",
-                    "gaps between windows, also supports css style gaps (top, right, bottom, left -> 5,10,15,20)",
+                    "Gaps between windows. Supports CSS-style shorthand: top,right,bottom,left -> 5,10,15,20",
                 );
                 WidgetBuilder::add_int_option(
                     &container,
                     &mut options,
                     "gaps_out",
                     "Gaps Out",
-                    "gaps between windows and monitor edges, also supports css style gaps (top, right, bottom, left -> 5,10,15,20)",
+                    "Gaps between windows and monitor edges. Supports CSS-style shorthand: top,right,bottom,left -> 5,10,15,20",
                 );
                 WidgetBuilder::add_int_option(
                     &container,
                     &mut options,
                     "gaps_workspaces",
-                    "Gaps Workspaces",
-                    "gaps between workspaces. Stacks with gaps_out.",
+                    "Workspace Gaps",
+                    "Gaps between workspaces. Stacks with gaps_out.",
                 );
 
                 WidgetBuilder::add_section(
                     &container,
                     "Borders",
-                    "Size, resize, floating...",
+                    "Border size and resize behavior.",
                     first_section.clone(),
                 );
                 WidgetBuilder::add_int_option(
@@ -93,41 +187,48 @@ impl ConfigWidget {
                     &mut options,
                     "border_size",
                     "Border Size",
-                    "size of the border around windows",
+                    "Size of the border around windows.",
+                );
+                WidgetBuilder::add_int_option(
+                    &container,
+                    &mut options,
+                    "resize_corner",
+                    "Resize Corner",
+                    "Which corners resize-on-border can grab: 0 disabled, 1 TL/BR, 2 TR/BL, 3 all, 4 smart.",
                 );
                 WidgetBuilder::add_bool_option(
                     &container,
                     &mut options,
                     "no_border_on_floating",
                     "No Border on Floating",
-                    "disable borders for floating windows",
+                    "Disable borders for floating windows.",
                 );
                 WidgetBuilder::add_bool_option(
                     &container,
                     &mut options,
                     "resize_on_border",
                     "Resize on Border",
-                    "enables resizing windows by clicking and dragging on borders and gaps",
+                    "Enable resizing windows by clicking and dragging on borders and gaps.",
                 );
                 WidgetBuilder::add_int_option(
                     &container,
                     &mut options,
                     "extend_border_grab_area",
                     "Extend Border Grab Area",
-                    "extends the area around the border where you can click and drag on, only used when general:resize_on_border is on.",
+                    "Extend the area around the border you can click and drag; only when resize_on_border is enabled.",
                 );
                 WidgetBuilder::add_bool_option(
                     &container,
                     &mut options,
                     "hover_icon_on_border",
                     "Hover Icon on Border",
-                    "show a cursor icon when hovering over borders, only used when general:resize_on_border is on.",
+                    "Show a cursor icon when hovering over borders; only when resize_on_border is enabled.",
                 );
 
                 WidgetBuilder::add_section(
                     &container,
                     "Colors",
-                    "Change borders colors.",
+                    "Configure border colors.",
                     first_section.clone(),
                 );
                 WidgetBuilder::add_color_option(
@@ -135,35 +236,35 @@ impl ConfigWidget {
                     &mut options,
                     "col.inactive_border",
                     "Inactive Border Color",
-                    "border color for inactive windows",
+                    "Border color for inactive windows.",
                 );
                 WidgetBuilder::add_color_option(
                     &container,
                     &mut options,
                     "col.active_border",
                     "Active Border Color",
-                    "border color for the active window",
+                    "Border color for the active window.",
                 );
                 WidgetBuilder::add_color_option(
                     &container,
                     &mut options,
                     "col.nogroup_border",
                     "No Group Border Color",
-                    "inactive border color for window that cannot be added to a group (see denywindowfromgroup dispatcher)",
+                    "Inactive border color for a window that cannot be added to a group (see denywindowfromgroup).",
                 );
                 WidgetBuilder::add_color_option(
                     &container,
                     &mut options,
                     "col.nogroup_border_active",
                     "No Group Active Border Color",
-                    "active border color for window that cannot be added to a group",
+                    "Active border color for a window that cannot be added to a group.",
                 );
             }
             "decoration" => {
                 WidgetBuilder::add_section(
                     &container,
                     "Window Decoration",
-                    "Configure window appearance.",
+                    "Configure window appearance and opacity.",
                     first_section.clone(),
                 );
                 WidgetBuilder::add_int_option(
@@ -171,119 +272,119 @@ impl ConfigWidget {
                     &mut options,
                     "rounding",
                     "Rounding",
-                    "rounded corners' radius (in layout px)",
+                    "Radius of rounded corners (layout px).",
                 );
                 WidgetBuilder::add_float_option(
                     &container,
                     &mut options,
                     "active_opacity",
                     "Active Opacity",
-                    "opacity of active windows. [0.0 - 1.0]",
+                    "Opacity of active windows [0.0 - 1.0]",
                 );
                 WidgetBuilder::add_float_option(
                     &container,
                     &mut options,
                     "inactive_opacity",
                     "Inactive Opacity",
-                    "opacity of inactive windows. [0.0 - 1.0]",
+                    "Opacity of inactive windows [0.0 - 1.0]",
                 );
                 WidgetBuilder::add_float_option(
                     &container,
                     &mut options,
                     "fullscreen_opacity",
                     "Fullscreen Opacity",
-                    "opacity of fullscreen windows. [0.0 - 1.0]",
+                    "Opacity of fullscreen windows [0.0 - 1.0]",
                 );
                 WidgetBuilder::add_bool_option(
                     &container,
                     &mut options,
                     "drop_shadow",
                     "Drop Shadow",
-                    "enable drop shadows on windows",
+                    "Enable drop shadows on windows",
                 );
                 WidgetBuilder::add_int_option(
                     &container,
                     &mut options,
                     "shadow_range",
                     "Shadow Range",
-                    "Shadow range (\"size\") in layout px",
+                    "Shadow radius/size (layout px)",
                 );
                 WidgetBuilder::add_int_option(
                     &container,
                     &mut options,
                     "shadow_render_power",
                     "Shadow Render Power",
-                    "in what power to render the falloff (more power, the faster the falloff) [1 - 4]",
+                    "Power of shadow falloff; higher = faster falloff [1 - 4]",
                 );
                 WidgetBuilder::add_bool_option(
                     &container,
                     &mut options,
                     "shadow_ignore_window",
                     "Shadow Ignore Window",
-                    "if true, the shadow will not be rendered behind the window itself, only around it.",
+                    "Do not render shadow behind the window itself; only around it.",
                 );
                 WidgetBuilder::add_color_option(
                     &container,
                     &mut options,
                     "col.shadow",
                     "Shadow Color",
-                    "shadow's color. Alpha dictates shadow's opacity.",
+                    "Shadow color; alpha controls shadow opacity.",
                 );
                 WidgetBuilder::add_color_option(
                     &container,
                     &mut options,
                     "col.shadow_inactive",
                     "Inactive Shadow Color",
-                    "inactive shadow color. (if not set, will fall back to col.shadow)",
+                    "Inactive shadow color; falls back to col.shadow if unset.",
                 );
                 WidgetBuilder::add_string_option(
                     &container,
                     &mut options,
                     "shadow_offset",
                     "Shadow Offset",
-                    "shadow's rendering offset. Format: \"x y\" (e.g. \"0 0\")",
+                    "Shadow render offset. Format: \"x y\" (e.g., \"0 0\").",
                 );
                 WidgetBuilder::add_float_option(
                     &container,
                     &mut options,
                     "shadow_scale",
                     "Shadow Scale",
-                    "shadow's scale. [0.0 - 1.0]",
+                    "Shadow scale [0.0 - 1.0]",
                 );
                 WidgetBuilder::add_bool_option(
                     &container,
                     &mut options,
                     "dim_inactive",
                     "Dim Inactive",
-                    "enables dimming of inactive windows",
+                    "Dim inactive windows.",
                 );
                 WidgetBuilder::add_float_option(
                     &container,
                     &mut options,
                     "dim_strength",
                     "Dim Strength",
-                    "how much inactive windows should be dimmed [0.0 - 1.0]",
+                    "How much to dim inactive windows [0.0 - 1.0]",
                 );
                 WidgetBuilder::add_float_option(
                     &container,
                     &mut options,
                     "dim_special",
                     "Dim Special",
-                    "how much to dim the rest of the screen by when a special workspace is open. [0.0 - 1.0]",
+                    "How much to dim the rest of the screen when a special workspace is open [0.0 - 1.0]",
                 );
                 WidgetBuilder::add_float_option(
                     &container,
                     &mut options,
                     "dim_around",
                     "Dim Around",
-                    "how much the dimaround window rule should dim by. [0.0 - 1.0]",
+                    "How much the dimaround window rule should dim by [0.0 - 1.0]",
                 );
                 WidgetBuilder::add_string_option(
                     &container,
                     &mut options,
                     "screen_shader",
                     "Screen Shader",
-                    "a path to a custom shader to be applied at the end of rendering. See examples/screenShader.frag for an example.",
+                    "Path to a custom screen shader applied at end of rendering. See examples/screenShader.frag.",
                 );
 
                 WidgetBuilder::add_section(
@@ -297,98 +398,98 @@ impl ConfigWidget {
                     &mut options,
                     "blur:enabled",
                     "Blur Enabled",
-                    "enable kawase window background blur",
+                    "Enable Kawase background blur",
                 );
                 WidgetBuilder::add_int_option(
                     &container,
                     &mut options,
                     "blur:size",
                     "Blur Size",
-                    "blur size (distance)",
+                    "Blur radius (distance)",
                 );
                 WidgetBuilder::add_int_option(
                     &container,
                     &mut options,
                     "blur:passes",
                     "Blur Passes",
-                    "the amount of passes to perform",
+                    "Number of blur passes",
                 );
                 WidgetBuilder::add_bool_option(
                     &container,
                     &mut options,
                     "blur:ignore_opacity",
                     "Blur Ignore Opacity",
-                    "make the blur layer ignore the opacity of the window",
+                    "Make blur layer ignore window opacity",
                 );
                 WidgetBuilder::add_bool_option(
                     &container,
                     &mut options,
                     "blur:new_optimizations",
                     "Blur New Optimizations",
-                    "whether to enable further optimizations to the blur. Recommended to leave on, as it will massively improve performance.",
+                    "Enable additional blur optimizations (recommended).",
                 );
                 WidgetBuilder::add_bool_option(
                     &container,
                     &mut options,
                     "blur:xray",
                     "Blur X-Ray",
-                    "if enabled, floating windows will ignore tiled windows in their blur. Only available if blur_new_optimizations is true. Will reduce overhead on floating blur significantly.",
+                    "Floating windows ignore tiled windows in their blur (requires blur:new_optimizations).",
                 );
                 WidgetBuilder::add_float_option(
                     &container,
                     &mut options,
                     "blur:noise",
                     "Blur Noise",
-                    "how much noise to apply. [0.0 - 1.0]",
+                    "Amount of noise to apply [0.0 - 1.0]",
                 );
                 WidgetBuilder::add_float_option(
                     &container,
                     &mut options,
                     "blur:contrast",
                     "Blur Contrast",
-                    "contrast modulation for blur. [0.0 - 2.0]",
+                    "Contrast modulation for blur [0.0 - 2.0]",
                 );
                 WidgetBuilder::add_float_option(
                     &container,
                     &mut options,
                     "blur:brightness",
                     "Blur Brightness",
-                    "brightness modulation for blur. [0.0 - 2.0]",
+                    "Brightness modulation for blur [0.0 - 2.0]",
                 );
                 WidgetBuilder::add_float_option(
                     &container,
                     &mut options,
                     "blur:vibrancy",
                     "Blur Vibrancy",
-                    "Increase saturation of blurred colors. [0.0 - 1.0]",
+                    "Increase saturation of blurred content [0.0 - 1.0]",
                 );
                 WidgetBuilder::add_float_option(
                     &container,
                     &mut options,
                     "blur:vibrancy_darkness",
                     "Blur Vibrancy Darkness",
-                    "How strong the effect of vibrancy is on dark areas . [0.0 - 1.0]",
+                    "Strength of vibrancy effect on dark areas [0.0 - 1.0]",
                 );
                 WidgetBuilder::add_bool_option(
                     &container,
                     &mut options,
                     "blur:special",
                     "Blur Special",
-                    "whether to blur behind the special workspace (note: expensive)",
+                    "Blur behind the special workspace (expensive)",
                 );
                 WidgetBuilder::add_bool_option(
                     &container,
                     &mut options,
                     "blur:popups",
                     "Blur Popups",
-                    "whether to blur popups (e.g. right-click menus)",
+                    "Blur popups (e.g., context menus)",
                 );
                 WidgetBuilder::add_float_option(
                     &container,
                     &mut options,
                     "blur:popups_ignorealpha",
                     "Blur Popups Ignore Alpha",
-                    "works like ignorealpha in layer rules. If pixel opacity is below set value, will not blur. [0.0 - 1.0]",
+                    "Like ignorealpha in layer rules: below value -> do not blur [0.0 - 1.0]",
                 );
             }
             "animations" => {
@@ -431,70 +532,70 @@ impl ConfigWidget {
                     &mut options,
                     "kb_model",
                     "Keyboard Model",
-                    "Appropriate XKB keymap parameter.",
+                    "XKB keymap model.",
                 );
                 WidgetBuilder::add_string_option(
                     &container,
                     &mut options,
                     "kb_layout",
                     "Keyboard Layout",
-                    "Appropriate XKB keymap parameter",
+                    "XKB keymap layout.",
                 );
                 WidgetBuilder::add_string_option(
                     &container,
                     &mut options,
                     "kb_variant",
                     "Keyboard Variant",
-                    "Appropriate XKB keymap parameter",
+                    "XKB keymap variant.",
                 );
                 WidgetBuilder::add_string_option(
                     &container,
                     &mut options,
                     "kb_options",
                     "Keyboard Options",
-                    "Appropriate XKB keymap parameter",
+                    "XKB keymap options.",
                 );
                 WidgetBuilder::add_string_option(
                     &container,
                     &mut options,
                     "kb_rules",
                     "Keyboard Rules",
-                    "Appropriate XKB keymap parameter",
+                    "XKB keymap rules.",
                 );
                 WidgetBuilder::add_string_option(
                     &container,
                     &mut options,
                     "kb_file",
                     "Keyboard File",
-                    "If you prefer, you can use a path to your custom .xkb file.",
+                    "Path to a custom .xkb file (optional).",
                 );
                 WidgetBuilder::add_bool_option(
                     &container,
                     &mut options,
                     "numlock_by_default",
                     "Numlock by Default",
-                    "Engage numlock by default.",
+                    "Enable NumLock by default.",
                 );
                 WidgetBuilder::add_bool_option(
                     &container,
                     &mut options,
                     "resolve_binds_by_sym",
                     "Resolve Binds by Symbol",
-                    "Determines how keybinds act when multiple layouts are used. If false, keybinds will always act as if the first specified layout is active. If true, keybinds specified by symbols are activated when you type the respective symbol with the current layout.",
+                    "When true, keybinds by symbol follow the currently active layout; otherwise they assume the first layout.",
                 );
                 WidgetBuilder::add_int_option(
                     &container,
                     &mut options,
                     "repeat_rate",
                     "Repeat Rate",
-                    "The repeat rate for held-down keys, in repeats per second.",
+                    "Repeat rate for held keys (repeats/sec).",
                 );
                 WidgetBuilder::add_int_option(
                     &container,
                     &mut options,
                     "repeat_delay",
                     "Repeat Delay",
-                    "Delay before a held-down key is repeated, in milliseconds.",
+                    "Delay before repeating a held key (ms).",
                 );
 
                 WidgetBuilder::add_section(
@@ -508,84 +609,84 @@ impl ConfigWidget {
                     &mut options,
                     "sensitivity",
                     "Sensitivity",
-                    "Sets the mouse input sensitivity. Value is clamped to the range -1.0 to 1.0.",
+                    "Mouse input sensitivity [-1.0 .. 1.0].",
                 );
                 WidgetBuilder::add_string_option(
                     &container,
                     &mut options,
                     "accel_profile",
                     "Acceleration Profile",
-                    "Sets the cursor acceleration profile. Can be one of adaptive, flat. Can also be custom, see below. Leave empty to use libinput's default mode for your input device.",
+                    "Cursor acceleration profile: adaptive, flat, or custom (leave empty for libinput default).",
                 );
                 WidgetBuilder::add_bool_option(
                     &container,
                     &mut options,
                     "force_no_accel",
                     "Force No Acceleration",
-                    "Force no cursor acceleration. This bypasses most of your pointer settings to get as raw of a signal as possible. Enabling this is not recommended due to potential cursor desynchronization.",
+                    "Disable cursor acceleration (may cause desynchronization).",
                 );
                 WidgetBuilder::add_bool_option(
                     &container,
                     &mut options,
                     "left_handed",
                     "Left Handed",
-                    "Switches RMB and LMB",
+                    "Swap left and right mouse buttons.",
                 );
                 WidgetBuilder::add_string_option(
                     &container,
                     &mut options,
                     "scroll_method",
                     "Scroll Method",
-                    "Sets the scroll method. Can be one of 2fg (2 fingers), edge, on_button_down, no_scroll.",
+                    "Scroll method: 2fg (two-finger), edge, on_button_down, no_scroll.",
                 );
                 WidgetBuilder::add_int_option(
                     &container,
                     &mut options,
                     "scroll_button",
                     "Scroll Button",
-                    "Sets the scroll button. Has to be an int, cannot be a string. Check wev if you have any doubts regarding the ID. 0 means default.",
+                    "Scroll button (integer ID; 0 = default).",
                 );
                 WidgetBuilder::add_bool_option(
                     &container,
                     &mut options,
                     "scroll_button_lock",
                     "Scroll Button Lock",
-                    "If the scroll button lock is enabled, the button does not need to be held down. Pressing and releasing the button toggles the button lock, which logically holds the button down or releases it. While the button is logically held down, motion events are converted to scroll events.",
+                    "Toggle to lock the scroll button instead of holding it. While locked, movement becomes scroll events.",
                 );
                 WidgetBuilder::add_float_option(
                     &container,
                     &mut options,
                     "scroll_factor",
                     "Scroll Factor",
-                    "Multiplier added to scroll movement for external mice. Note that there is a separate setting for touchpad scroll_factor.",
+                    "Multiplier for scroll movement (external mice). Note: separate setting for touchpad scroll_factor.",
                 );
                 WidgetBuilder::add_bool_option(
                     &container,
                     &mut options,
                     "natural_scroll",
                     "Natural Scroll",
-                    "Inverts scrolling direction. When enabled, scrolling moves content directly, rather than manipulating a scrollbar.",
+                    "Invert scrolling direction (content follows finger).",
                 );
                 WidgetBuilder::add_int_option(
                     &container,
                     &mut options,
                     "follow_mouse",
                     "Follow Mouse",
-                    "Specify if and how cursor movement should affect window focus. 0 - Cursor movement will not change focus, 1 - Cursor movement will always change focus to the window under the cursor, 2 - Cursor focus will be detached from keyboard focus, 3 - Cursor focus will be completely separate from keyboard focus. [0/1/2/3]",
+                    "How cursor movement affects focus: 0 none, 1 focus under cursor, 2 detached from keyboard focus, 3 fully separate [0/1/2/3]",
                 );
                 WidgetBuilder::add_bool_option(
                     &container,
                     &mut options,
                     "mouse_refocus",
                     "Mouse Refocus",
-                    "If disabled, mouse focus won't switch to the hovered window unless the mouse crosses a window boundary when follow_mouse=1.",
+                    "If off, focus won't switch unless a window boundary is crossed when follow_mouse=1.",
                 );
                 WidgetBuilder::add_string_option(
                     &container,
                     &mut options,
                     "scroll_points",
                     "Scroll Points",
-                    "Sets the scroll acceleration profile, when accel_profile is set to custom. Has to be in the form <step> <points>. Leave empty to have a flat scroll curve.",
+                    "Scroll acceleration profile when accel_profile=custom. Format: <step> <points>. Empty = flat curve.",
                 );
 
                 WidgetBuilder::add_section(
@@ -599,21 +700,21 @@ impl ConfigWidget {
                     &mut options,
                     "focus_on_close",
                     "Focus on Close",
-                    "Controls the window focus behavior when a window is closed. 0 - focus will shift to the next window candidate, 1 - focus will shift to the window under the cursor. [0/1]",
+                    "When a window closes: 0 focus next candidate, 1 focus window under cursor [0/1]",
                 );
                 WidgetBuilder::add_int_option(
                     &container,
                     &mut options,
                     "float_switch_override_focus",
                     "Float Switch Override Focus",
-                    "If enabled, focus will change to the window under the cursor when changing from tiled-to-floating and vice versa. 0 - disabled, 1 - enabled, 2 - focus will also follow mouse on float-to-float switches. [0/1/2]",
+                    "Change focus to window under cursor on tiled<->floating switches: 0 off, 1 on, 2 also float->float [0/1/2]",
                 );
                 WidgetBuilder::add_bool_option(
                     &container,
                     &mut options,
                     "special_fallthrough",
                     "Special Fallthrough",
-                    "if enabled, having only floating windows in the special workspace will not block focusing windows in the regular workspace.",
+                    "If on, only-floating special workspace won't block focusing windows in regular workspace.",
                 );
 
                 WidgetBuilder::add_section(
@@ -810,98 +911,98 @@ impl ConfigWidget {
                     &mut options,
                     "workspace_swipe",
                     "Workspace Swipe",
-                    "enable workspace swipe gesture on touchpad",
+                    "Enable workspace swipe gesture on touchpad.",
                 );
                 WidgetBuilder::add_int_option(
                     &container,
                     &mut options,
                     "workspace_swipe_fingers",
                     "Workspace Swipe Fingers",
-                    "how many fingers for the touchpad gesture",
+                    "Number of fingers for the touchpad gesture.",
                 );
                 WidgetBuilder::add_bool_option(
                     &container,
                     &mut options,
                     "workspace_swipe_min_fingers",
                     "Workspace Swipe Min Fingers",
-                    "if enabled, workspace_swipe_fingers is considered the minimum number of fingers to swipe",
+                    "Treat workspace_swipe_fingers as the minimum finger count.",
                 );
                 WidgetBuilder::add_int_option(
                     &container,
                     &mut options,
                     "workspace_swipe_distance",
                     "Workspace Swipe Distance",
-                    "in px, the distance of the touchpad gesture",
+                    "Touchpad gesture distance (px).",
                 );
                 WidgetBuilder::add_bool_option(
                     &container,
                     &mut options,
                     "workspace_swipe_touch",
                     "Workspace Swipe Touch",
-                    "enable workspace swiping from the edge of a touchscreen",
+                    "Enable workspace swiping from touchscreen edge.",
                 );
                 WidgetBuilder::add_bool_option(
                     &container,
                     &mut options,
                     "workspace_swipe_invert",
                     "Workspace Swipe Invert",
-                    "invert the direction (touchpad only)",
+                    "Invert swipe direction (touchpad only).",
                 );
                 WidgetBuilder::add_bool_option(
                     &container,
                     &mut options,
                     "workspace_swipe_touch_invert",
                     "Workspace Swipe Touch Invert",
-                    "invert the direction (touchscreen only)",
+                    "Invert swipe direction (touchscreen only).",
                 );
                 WidgetBuilder::add_int_option(
                     &container,
                     &mut options,
                     "workspace_swipe_min_speed_to_force",
                     "Workspace Swipe Min Speed to Force",
-                    "minimum speed in px per timepoint to force the change ignoring cancel_ratio. Setting to 0 will disable this mechanic.",
+                    "Minimum speed (px/timepoint) to force switch ignoring cancel_ratio. 0 disables.",
                 );
                 WidgetBuilder::add_float_option(
                     &container,
                     &mut options,
                     "workspace_swipe_cancel_ratio",
                     "Workspace Swipe Cancel Ratio",
-                    "how much the swipe has to proceed in order to commence it. (0.7 -> if > 0.7 * distance, switch, if less, revert) [0.0 - 1.0]",
+                    "Swipe progress needed to commit switch (e.g., 0.7 -> >70% switches, else reverts) [0.0 - 1.0]",
                 );
                 WidgetBuilder::add_bool_option(
                     &container,
                     &mut options,
                     "workspace_swipe_create_new",
                     "Workspace Swipe Create New",
-                    "whether a swipe right on the last workspace should create a new one.",
+                    "Swipe right on the last workspace should create a new one.",
                 );
                 WidgetBuilder::add_bool_option(
                     &container,
                     &mut options,
                     "workspace_swipe_direction_lock",
                     "Workspace Swipe Direction Lock",
-                    "if enabled, switching direction will be locked when you swipe past the direction_lock_threshold (touchpad only).",
+                    "Lock direction after passing direction_lock_threshold (touchpad only).",
                 );
                 WidgetBuilder::add_int_option(
                     &container,
                     &mut options,
                     "workspace_swipe_direction_lock_threshold",
                     "Workspace Swipe Direction Lock Threshold",
-                    "in px, the distance to swipe before direction lock activates (touchpad only).",
+                    "Distance in px before direction lock activates (touchpad only).",
                 );
                 WidgetBuilder::add_bool_option(
                     &container,
                     &mut options,
                     "workspace_swipe_forever",
                     "Workspace Swipe Forever",
-                    "if enabled, swiping will not clamp at the neighboring workspaces but continue to the further ones.",
+                    "Do not clamp at neighboring workspaces; continue to further ones.",
                 );
                 WidgetBuilder::add_bool_option(
                     &container,
                     &mut options,
                     "workspace_swipe_use_r",
                     "Workspace Swipe Use R",
-                    "if enabled, swiping will use the r prefix instead of the m prefix for finding workspaces.",
+                    "Use the r prefix instead of m for finding workspaces when swiping.",
                 );
             }
 
@@ -1204,7 +1305,7 @@ impl ConfigWidget {
                     &mut options,
                     "enable_swallow",
                     "Enable Swallow",
-                    "Enable window swallowing",
+                    "Enable window swallowing.",
                 );
                 WidgetBuilder::add_string_option(
                     &container,
@@ -1700,7 +1801,7 @@ impl ConfigWidget {
                 WidgetBuilder::add_section(
                     &container,
                     "Dwindle Layout",
-                    "Configure Dwindle layout settings.",
+                    "Configure settings for the Dwindle layout.",
                     first_section.clone(),
                 );
                 WidgetBuilder::add_bool_option(
@@ -1715,7 +1816,7 @@ impl ConfigWidget {
                     &mut options,
                     "dwindle:force_split",
                     "Force Split",
-                    "0 -> split follows mouse, 1 -> always split to the left (new = left or top) 2 -> always split to the right (new = right or bottom)",
+                    "0 follow mouse, 1 always left/top, 2 always right/bottom",
                 );
                 WidgetBuilder::add_bool_option(
                     &container,
@@ -1784,7 +1885,7 @@ impl ConfigWidget {
                 WidgetBuilder::add_section(
                     &container,
                     "Master Layout",
-                    "Configure Master layout settings.",
+                    "Configure settings for the Master layout.",
                     first_section.clone(),
                 );
                 WidgetBuilder::add_bool_option(
@@ -1812,8 +1913,8 @@ impl ConfigWidget {
                     &container,
                     &mut options,
                     "master:new_status",
-                    "New Window Status",
-                    "Determines how new windows are added to the layout.",
+                    "New Status",
+                    "How to add new windows to the layout.",
                     &["master", "slave", "inherit"],
                 );
                 WidgetBuilder::add_bool_option(
@@ -1828,7 +1929,7 @@ impl ConfigWidget {
                     &mut options,
                     "master:new_on_active",
                     "New on Active",
-                    "Place new window relative to the focused window",
+                    "Place new window relative to the focused window.",
                     &["before", "after", "none"],
                 );
                 add_dropdown_option(
@@ -1836,7 +1937,7 @@ impl ConfigWidget {
                     &mut options,
                     "master:orientation",
                     "Orientation",
-                    "Default placement of the master area",
+                    "Default placement of the master area.",
                     &["left", "right", "top", "bottom", "center"],
                 );
                 WidgetBuilder::add_bool_option(
@@ -1890,6 +1991,406 @@ impl ConfigWidget {
         category: &str,
         changed_options: Rc<RefCell<HashMap<(String, String), String>>>,
     ) {
+        if category == "monitors" {
+            // Populate the monitors and workspaces ListBoxes from config
+            if let (Some(list_mon_w), Some(list_ws_w)) = (
+                self.options.get("monitors:list_monitors"),
+                self.options.get("monitors:list_workspaces"),
+            ) {
+                if let (Some(list_mon), Some(list_ws)) = (
+                    list_mon_w.downcast_ref::<gtk::ListBox>(),
+                    list_ws_w.downcast_ref::<gtk::ListBox>(),
+                ) {
+                    // clear
+                    while let Some(row) = list_mon.first_child() {
+                        list_mon.remove(&row);
+                    }
+                    while let Some(row) = list_ws.first_child() {
+                        list_ws.remove(&row);
+                    }
+
+                    // Gather lines from aggregated content and sourced files
+                    let mut mon_lines: Vec<String> = Vec::new();
+                    let mut ws_lines: Vec<String> = Vec::new();
+                    for ln in &config.content {
+                        let t = ln.trim();
+                        if t.starts_with("monitor=") {
+                            mon_lines.push(t.to_string());
+                        } else if t.starts_with("workspace=") {
+                            ws_lines.push(t.to_string());
+                        }
+                    }
+                    for sourced in &config.sourced_content {
+                        for ln in sourced {
+                            let t = ln.trim();
+                            if t.starts_with("monitor=") {
+                                mon_lines.push(t.to_string());
+                            } else if t.starts_with("workspace=") {
+                                ws_lines.push(t.to_string());
+                            }
+                        }
+                    }
+
+                    // Determine available monitor names and modes via hyprctl -j monitors
+                    let mut monitor_names: Vec<String> = Vec::new();
+                    let mut name_to_modes: HashMap<String, Vec<String>> = HashMap::new();
+                    let mut all_modes: Vec<String> = vec!["preferred".to_string()];
+                    if let Ok(out) = Command::new("hyprctl").args(["-j", "monitors"]).output() {
+                        if out.status.success() {
+                            if let Ok(json) = serde_json::from_slice::<Value>(&out.stdout) {
+                                if let Some(arr) = json.as_array() {
+                                    for m in arr {
+                                        if let Some(name) = m.get("name").and_then(|v| v.as_str()) {
+                                            let name_str = name.to_string();
+                                            if !monitor_names.contains(&name_str) {
+                                                monitor_names.push(name_str.clone());
+                                            }
+                                            // collect availableModes if provided
+                                            let mut modes_for_this: Vec<String> = Vec::new();
+                                            if let Some(val) = m.get("availableModes").or_else(|| m.get("modes")) {
+                                                if let Some(s) = val.as_str() {
+                                                    for tok in s.split_whitespace() {
+                                                        let t = tok.trim().to_string();
+                                                        if !t.is_empty() && !modes_for_this.contains(&t) {
+                                                            modes_for_this.push(t.clone());
+                                                        }
+                                                    }
+                                                } else if let Some(arrm) = val.as_array() {
+                                                    for item in arrm {
+                                                        if let Some(s) = item.as_str() {
+                                                            let t = s.trim().to_string();
+                                                            if !t.is_empty() && !modes_for_this.contains(&t) {
+                                                                modes_for_this.push(t.clone());
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                            if !modes_for_this.is_empty() {
+                                                for mm in &modes_for_this {
+                                                    if !all_modes.contains(mm) {
+                                                        all_modes.push(mm.clone());
+                                                    }
+                                                }
+                                                name_to_modes.insert(name_str, modes_for_this);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if monitor_names.is_empty() {
+                        // Fallback: infer names from existing lines
+                        for l in &mon_lines {
+                            if let Some(rest) = l.splitn(2, '=').nth(1) {
+                                if let Some(name) = rest.split(',').next() {
+                                    let name = name.trim();
+                                    if !name.is_empty() && !monitor_names.contains(&name.to_string()) {
+                                        monitor_names.push(name.to_string());
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    if mon_lines.is_empty() {
+                        let row = gtk::Label::new(Some("No monitors defined."));
+                        row.set_halign(gtk::Align::Start);
+                        list_mon.append(&row);
+                    } else {
+                        for l in mon_lines {
+                            // monitor=NAME,MODE,POS,SCALE
+                            let mut name_opt: Option<String> = None;
+                            let mut mode = "".to_string();
+                            let mut pos = "".to_string();
+                            let mut scale = "".to_string();
+                            if let Some(rest) = l.splitn(2, '=').nth(1) {
+                                let parts: Vec<&str> = rest.split(',').collect();
+                                if parts.len() >= 1 { name_opt = Some(parts[0].trim().to_string()); }
+                                if parts.len() >= 2 { mode = parts[1].trim().to_string(); }
+                                if parts.len() >= 3 { pos = parts[2].trim().to_string(); }
+                                if parts.len() >= 4 { scale = parts[3].trim().to_string(); }
+                            }
+                            let row = Box::new(Orientation::Horizontal, 6);
+                            // Monitor dropdown
+                            let items = monitor_names.clone();
+                            let items_refs: Vec<&str> = items.iter().map(|s| s.as_str()).collect();
+                            let string_list = gtk::StringList::new(&items_refs);
+                            let dd = gtk::DropDown::new(Some(string_list), None::<gtk::Expression>);
+                            dd.set_width_request(140);
+                            dd.set_halign(gtk::Align::Start);
+                            if let Some(sel) = name_opt {
+                                if let Some(model) = dd.model() {
+                                    for i in 0..model.n_items() {
+                                        if let Some(item) = model.item(i) {
+                                            if let Some(obj) = item.downcast_ref::<gtk::StringObject>() {
+                                                if obj.string() == sel { dd.set_selected(i); break; }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            row.append(&dd);
+                            // mode dropdown
+                            let mut modes_list: Vec<String> = vec!["preferred".to_string()];
+                            if let Some(model) = dd.model() {
+                                if let Some(item) = model.item(dd.selected()) {
+                                    if let Some(obj) = item.downcast_ref::<gtk::StringObject>() {
+                                        let sel = obj.string().to_string();
+                                        if let Some(v) = name_to_modes.get(&sel) {
+                                            modes_list.extend(v.clone());
+                                        } else {
+                                            modes_list.extend(all_modes.clone());
+                                        }
+                                    }
+                                }
+                            } else {
+                                modes_list.extend(all_modes.clone());
+                            }
+                            let mut seen = std::collections::HashSet::new();
+                            modes_list.retain(|s| seen.insert(s.clone()));
+                            let modes_refs: Vec<&str> = modes_list.iter().map(|s| s.as_str()).collect();
+                            let modes_model = gtk::StringList::new(&modes_refs);
+                            let dd_mode = gtk::DropDown::new(Some(modes_model), None::<gtk::Expression>);
+                            dd_mode.set_width_request(220);
+                            if let Some(modelm) = dd_mode.model() {
+                                for i in 0..modelm.n_items() {
+                                    if let Some(it) = modelm.item(i) {
+                                        if let Some(obj) = it.downcast_ref::<gtk::StringObject>() {
+                                            if obj.string() == mode { dd_mode.set_selected(i); break; }
+                                        }
+                                    }
+                                }
+                            }
+                            let e_pos = gtk::Entry::new();
+                            e_pos.set_placeholder_text(Some("pos e.g. 0x0 or auto"));
+                            e_pos.set_text(&pos);
+                            let e_scale = gtk::Entry::new();
+                            e_scale.set_placeholder_text(Some("scale e.g. 1"));
+                            e_scale.set_text(&scale);
+                            row.append(&dd_mode);
+                            row.append(&e_pos);
+                            row.append(&e_scale);
+                            // delete button
+                            let del_btn = gtk::Button::from_icon_name("window-close-symbolic");
+                            del_btn.set_has_frame(false);
+                            del_btn.add_css_class("flat");
+                            let list_ref = list_mon.clone();
+                            del_btn.connect_clicked(move |button| {
+                                if let Some(ancestor) = button.ancestor(gtk::ListBoxRow::static_type()) {
+                                    if let Some(lb_row) = ancestor.downcast_ref::<gtk::ListBoxRow>() {
+                                        list_ref.remove(lb_row);
+                                    }
+                                }
+                            });
+                            row.append(&del_btn);
+                            list_mon.append(&row);
+                        }
+                    }
+
+                    // Workspaces: workspace number dropdown, monitor dropdown, default switch
+                    if ws_lines.is_empty() {
+                        let row = gtk::Label::new(Some("No workspaces mapped to monitors."));
+                        row.set_halign(gtk::Align::Start);
+                        list_ws.append(&row);
+                    } else {
+                        for l in ws_lines {
+                            // workspace=NUM,monitor:NAME,default:true
+                            let mut ws_num = "1".to_string();
+                            let mut mon_name: Option<String> = None;
+                            let mut is_default = false;
+                            if let Some(rest) = l.splitn(2, '=').nth(1) {
+                                for part in rest.split(',') {
+                                    let p = part.trim();
+                                    if let Some(num) = p.strip_prefix("monitor:") {
+                                        mon_name = Some(num.to_string());
+                                    } else if let Some(def) = p.strip_prefix("default:") {
+                                        is_default = def == "true";
+                                    } else if p.chars().all(|c| c.is_ascii_digit()) {
+                                        ws_num = p.to_string();
+                                    }
+                                }
+                            }
+                            let row = Box::new(Orientation::Horizontal, 6);
+                            // workspace number dropdown
+                            let ws_numbers: Vec<String> = (1..=20).map(|n| n.to_string()).collect();
+                            let ws_num_refs: Vec<&str> = ws_numbers.iter().map(|s| s.as_str()).collect();
+                            let ws_list = gtk::StringList::new(&ws_num_refs);
+                            let ws_dd = gtk::DropDown::new(Some(ws_list), None::<gtk::Expression>);
+                            ws_dd.set_width_request(80);
+                            if let Some(model) = ws_dd.model() {
+                                for i in 0..model.n_items() {
+                                    if let Some(item) = model.item(i) {
+                                        if let Some(obj) = item.downcast_ref::<gtk::StringObject>() {
+                                            if obj.string() == ws_num { ws_dd.set_selected(i); break; }
+                                        }
+                                    }
+                                }
+                            }
+                            row.append(&ws_dd);
+                            // monitor dropdown
+                            let items = monitor_names.clone();
+                            let items_refs: Vec<&str> = items.iter().map(|s| s.as_str()).collect();
+                            let mon_list = gtk::StringList::new(&items_refs);
+                            let mon_dd = gtk::DropDown::new(Some(mon_list), None::<gtk::Expression>);
+                            mon_dd.set_width_request(140);
+                            if let Some(sel) = mon_name {
+                                if let Some(model) = mon_dd.model() {
+                                    for i in 0..model.n_items() {
+                                        if let Some(item) = model.item(i) {
+                                            if let Some(obj) = item.downcast_ref::<gtk::StringObject>() {
+                                                if obj.string() == sel { mon_dd.set_selected(i); break; }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            row.append(&mon_dd);
+                            // default switch
+                            let sw = gtk::Switch::new();
+                            sw.set_halign(gtk::Align::Start);
+                            sw.set_active(is_default);
+                            row.append(&sw);
+                            // delete button
+                            let del_btn = gtk::Button::from_icon_name("window-close-symbolic");
+                            del_btn.set_has_frame(false);
+                            del_btn.add_css_class("flat");
+                            let list_ref = list_ws.clone();
+                            del_btn.connect_clicked(move |button| {
+                                if let Some(ancestor) = button.ancestor(gtk::ListBoxRow::static_type()) {
+                                    if let Some(lb_row) = ancestor.downcast_ref::<gtk::ListBoxRow>() {
+                                        list_ref.remove(lb_row);
+                                    }
+                                }
+                            });
+                            row.append(&del_btn);
+                            list_ws.append(&row);
+                        }
+                    }
+
+                    // Wire add buttons
+                    if let (Some(add_mon_w), Some(add_ws_w)) = (
+                        self.options.get("monitors:add_monitor"),
+                        self.options.get("monitors:add_workspace"),
+                    ) {
+                        if let (Some(add_mon), Some(add_ws)) = (
+                            add_mon_w.downcast_ref::<gtk::Button>(),
+                            add_ws_w.downcast_ref::<gtk::Button>(),
+                        ) {
+                            let list_clone = list_mon.clone();
+                            let monitor_names_clone = monitor_names.clone();
+                            let name_to_modes_clone = name_to_modes.clone();
+                            let all_modes_clone = all_modes.clone();
+                            add_mon.connect_clicked(move |_| {
+                                let row = Box::new(Orientation::Horizontal, 6);
+                                let items = monitor_names_clone.clone();
+                                let items_refs: Vec<&str> = items.iter().map(|s| s.as_str()).collect();
+                                let string_list = gtk::StringList::new(&items_refs);
+                                let dd = gtk::DropDown::new(Some(string_list), None::<gtk::Expression>);
+                                dd.set_width_request(140);
+                                row.append(&dd);
+                                // initial modes
+                                let mut modes_list: Vec<String> = vec!["preferred".to_string()];
+                                modes_list.extend(all_modes_clone.clone());
+                                let mut seen = std::collections::HashSet::new();
+                                modes_list.retain(|s| seen.insert(s.clone()));
+                                let modes_refs: Vec<&str> = modes_list.iter().map(|s| s.as_str()).collect();
+                                let modes_model = gtk::StringList::new(&modes_refs);
+                                let dd_mode = gtk::DropDown::new(Some(modes_model), None::<gtk::Expression>);
+                                dd_mode.set_width_request(220);
+                                // update on monitor change
+                                let dd_mode_clone = dd_mode.clone();
+                                let name_to_modes_local = name_to_modes_clone.clone();
+                                let all_modes_local = all_modes_clone.clone();
+                                dd.connect_selected_notify(move |sel_dd| {
+                                    let mut modes_list: Vec<String> = vec!["preferred".to_string()];
+                                    if let Some(item) = sel_dd.selected_item() {
+                                        if let Some(obj) = item.downcast_ref::<gtk::StringObject>() {
+                                            let sel = obj.string().to_string();
+                                            if let Some(v) = name_to_modes_local.get(&sel) {
+                                                modes_list.extend(v.clone());
+                                            } else {
+                                                modes_list.extend(all_modes_local.clone());
+                                            }
+                                        }
+                                    } else {
+                                        modes_list.extend(all_modes_local.clone());
+                                    }
+                                    let mut seen = std::collections::HashSet::new();
+                                    modes_list.retain(|s| seen.insert(s.clone()));
+                                    let modes_refs: Vec<&str> = modes_list.iter().map(|s| s.as_str()).collect();
+                                    let new_model = gtk::StringList::new(&modes_refs);
+                                    dd_mode_clone.set_model(Some(&new_model));
+                                    dd_mode_clone.set_selected(0);
+                                });
+                                let e_pos = gtk::Entry::new();
+                                e_pos.set_placeholder_text(Some("pos e.g. 0x0 or auto"));
+                                e_pos.set_text("auto");
+                                let e_scale = gtk::Entry::new();
+                                e_scale.set_placeholder_text(Some("scale e.g. 1"));
+                                e_scale.set_text("1");
+                                row.append(&dd_mode);
+                                row.append(&e_pos);
+                                row.append(&e_scale);
+                                // X button
+                                let del_btn = gtk::Button::from_icon_name("window-close-symbolic");
+                                del_btn.set_has_frame(false);
+                                del_btn.add_css_class("flat");
+                                let list_ref = list_clone.clone();
+                                del_btn.connect_clicked(move |button| {
+                                    if let Some(ancestor) = button.ancestor(gtk::ListBoxRow::static_type()) {
+                                        if let Some(lb_row) = ancestor.downcast_ref::<gtk::ListBoxRow>() {
+                                            list_ref.remove(lb_row);
+                                        }
+                                    }
+                                });
+                                row.append(&del_btn);
+                                list_clone.append(&row);
+                            });
+
+                            let list_clone = list_ws.clone();
+                            let monitor_names_clone = monitor_names.clone();
+                            add_ws.connect_clicked(move |_| {
+                                let row = Box::new(Orientation::Horizontal, 6);
+                                let ws_numbers: Vec<String> = (1..=20).map(|n| n.to_string()).collect();
+                                let ws_num_refs: Vec<&str> = ws_numbers.iter().map(|s| s.as_str()).collect();
+                                let ws_list = gtk::StringList::new(&ws_num_refs);
+                                let ws_dd = gtk::DropDown::new(Some(ws_list), None::<gtk::Expression>);
+                                ws_dd.set_width_request(80);
+                                row.append(&ws_dd);
+                                let items = monitor_names_clone.clone();
+                                let items_refs: Vec<&str> = items.iter().map(|s| s.as_str()).collect();
+                                let mon_list = gtk::StringList::new(&items_refs);
+                                let mon_dd = gtk::DropDown::new(Some(mon_list), None::<gtk::Expression>);
+                                mon_dd.set_width_request(140);
+                                row.append(&mon_dd);
+                                let sw = gtk::Switch::new();
+                                sw.set_active(true);
+                                row.append(&sw);
+                                // X button
+                                let del_btn = gtk::Button::from_icon_name("window-close-symbolic");
+                                del_btn.set_has_frame(false);
+                                del_btn.add_css_class("flat");
+                                let list_ref = list_clone.clone();
+                                del_btn.connect_clicked(move |button| {
+                                    if let Some(ancestor) = button.ancestor(gtk::ListBoxRow::static_type()) {
+                                        if let Some(lb_row) = ancestor.downcast_ref::<gtk::ListBoxRow>() {
+                                            list_ref.remove(lb_row);
+                                        }
+                                    }
+                                });
+                                row.append(&del_btn);
+                                list_clone.append(&row);
+                            });
+
+                            // per-row X buttons handle deletion; no section-level delete
+                        }
+                    }
+                }
+            }
+            return;
+        }
         let mut builder = WidgetBuilder::new();
         builder.options = self.options.clone();
         builder.load_config(config, category, changed_options);

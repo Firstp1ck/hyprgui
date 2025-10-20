@@ -19,6 +19,17 @@ fn main() {
 }
 
 fn build_ui(app: &Application) {
+    // Inject a tiny CSS provider to avoid GTK slider min-size warnings without touching system theme
+    let provider = gtk::CssProvider::new();
+    provider.load_from_data("slider { min-width: 1px; min-height: 1px; }");
+    if let Some(display) = gtk::gdk::Display::default() {
+        gtk::style_context_add_provider_for_display(
+            &display,
+            &provider,
+            gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
+        );
+    }
+
     let gui = Rc::new(RefCell::new(gui::ConfigGUI::new(app)));
     gui::ConfigGUI::setup_config_buttons(gui.clone());
 

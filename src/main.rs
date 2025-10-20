@@ -58,10 +58,10 @@ fn build_ui(app: &Application) {
 
         let gui_clone = gui.clone();
         gui.borrow().save_button.connect_clicked(move |button| {
-            if let Some(popover) = button.ancestor(gtk::Popover::static_type()) {
-                if let Some(popover) = popover.downcast_ref::<gtk::Popover>() {
-                    popover.popdown();
-                }
+            if let Some(popover) = button.ancestor(gtk::Popover::static_type())
+                && let Some(popover) = popover.downcast_ref::<gtk::Popover>()
+            {
+                popover.popdown();
             }
             save_config_file(gui_clone.clone());
         });
@@ -76,10 +76,10 @@ fn build_ui(app: &Application) {
 
         let gui_clone = gui.clone();
         undo_button.connect_clicked(move |button| {
-            if let Some(popover) = button.ancestor(gtk::Popover::static_type()) {
-                if let Some(popover) = popover.downcast_ref::<gtk::Popover>() {
-                    popover.popdown();
-                }
+            if let Some(popover) = button.ancestor(gtk::Popover::static_type())
+                && let Some(popover) = popover.downcast_ref::<gtk::Popover>()
+            {
+                popover.popdown();
             }
 
             undo_changes(gui_clone.clone());
@@ -87,10 +87,10 @@ fn build_ui(app: &Application) {
 
         let gui_clone = gui.clone();
         copy_button.connect_clicked(move |button| {
-            if let Some(popover) = button.ancestor(gtk::Popover::static_type()) {
-                if let Some(popover) = popover.downcast_ref::<gtk::Popover>() {
-                    popover.popdown();
-                }
+            if let Some(popover) = button.ancestor(gtk::Popover::static_type())
+                && let Some(popover) = popover.downcast_ref::<gtk::Popover>()
+            {
+                popover.popdown();
             }
 
             gui_clone.borrow_mut().custom_info_popup(
@@ -110,11 +110,11 @@ along with this program; if not, see
             );
         });
 
-        if let Some(gear_menu_box) = gui.borrow().gear_menu.borrow().child() {
-            if let Some(box_widget) = gear_menu_box.downcast_ref::<gtk::Box>() {
-                box_widget.append(&undo_button);
-                box_widget.append(&copy_button);
-            }
+        if let Some(gear_menu_box) = gui.borrow().gear_menu.borrow().child()
+            && let Some(box_widget) = gear_menu_box.downcast_ref::<gtk::Box>()
+        {
+            box_widget.append(&undo_button);
+            box_widget.append(&copy_button);
         }
     }
 
@@ -130,37 +130,34 @@ fn filter_options(gui: Rc<RefCell<gui::ConfigGUI>>, search_text: impl AsRef<str>
     for config_widget in gui_ref.config_widgets.values() {
         if search_text.is_empty() {
             config_widget.scrolled_window.set_visible(true);
-            if let Some(scrolled) = config_widget.scrolled_window.child() {
-                if let Some(container) = scrolled.first_child() {
-                    let mut child = container.first_child();
-                    while let Some(widget) = child {
-                        widget.set_visible(true);
-                        child = widget.next_sibling();
-                    }
+            if let Some(scrolled) = config_widget.scrolled_window.child()
+                && let Some(container) = scrolled.first_child()
+            {
+                let mut child = container.first_child();
+                while let Some(widget) = child {
+                    widget.set_visible(true);
+                    child = widget.next_sibling();
                 }
             }
         } else {
             let mut has_matches = false;
 
-            if let Some(scrolled) = config_widget.scrolled_window.child() {
-                if let Some(container) = scrolled.first_child() {
-                    let mut child = container.first_child();
-                    while let Some(widget) = child {
-                        widget.set_visible(false);
-                        if let Some(box_widget) = widget.downcast_ref::<gtk::Box>() {
-                            if let Some(label_box) = box_widget.first_child() {
-                                if let Some(label) = label_box.first_child() {
-                                    if let Some(label) = label.downcast_ref::<gtk::Label>() {
-                                        if label.text().to_lowercase().contains(&search_text) {
-                                            has_matches = true;
-                                            widget.set_visible(true);
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        child = widget.next_sibling();
+            if let Some(scrolled) = config_widget.scrolled_window.child()
+                && let Some(container) = scrolled.first_child()
+            {
+                let mut child = container.first_child();
+                while let Some(widget) = child {
+                    widget.set_visible(false);
+                    if let Some(box_widget) = widget.downcast_ref::<gtk::Box>()
+                        && let Some(label_box) = box_widget.first_child()
+                        && let Some(label) = label_box.first_child()
+                        && let Some(label) = label.downcast_ref::<gtk::Label>()
+                        && label.text().to_lowercase().contains(&search_text)
+                    {
+                        has_matches = true;
+                        widget.set_visible(true);
                     }
+                    child = widget.next_sibling();
                 }
             }
 

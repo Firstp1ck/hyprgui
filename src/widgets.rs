@@ -386,13 +386,12 @@ impl WidgetBuilder {
             } else if let Some(dropdown) = widget.downcast_ref::<gtk::DropDown>() {
                 let model = dropdown.model().unwrap();
                 for i in 0..model.n_items() {
-                    if let Some(item) = model.item(i) {
-                        if let Some(string_object) = item.downcast_ref::<gtk::StringObject>() {
-                            if string_object.string() == value {
-                                dropdown.set_selected(i);
-                                break;
-                            }
-                        }
+                    if let Some(item) = model.item(i)
+                        && let Some(string_object) = item.downcast_ref::<gtk::StringObject>()
+                        && string_object.string() == value
+                    {
+                        dropdown.set_selected(i);
+                        break;
                     }
                 }
                 let category = category.to_string();
@@ -400,11 +399,11 @@ impl WidgetBuilder {
                 let changed_options = changed_options.clone();
                 dropdown.connect_selected_notify(move |dd| {
                     let mut changes = changed_options.borrow_mut();
-                    if let Some(selected) = dd.selected_item() {
-                        if let Some(string_object) = selected.downcast_ref::<gtk::StringObject>() {
-                            let new_value = string_object.string().to_string();
-                            changes.insert((category.clone(), name.clone()), new_value);
-                        }
+                    if let Some(selected) = dd.selected_item()
+                        && let Some(string_object) = selected.downcast_ref::<gtk::StringObject>()
+                    {
+                        let new_value = string_object.string().to_string();
+                        changes.insert((category.clone(), name.clone()), new_value);
                     }
                 });
             }
@@ -419,18 +418,18 @@ impl WidgetBuilder {
         // in hyprland.conf. Read those directly instead of a non-existent "layouts" section.
         if category == "layouts" && parts.len() == 2 {
             // Try main config first
-            if let Some(&(start, end)) = config.sections.get(parts[0]) {
-                if start < config.content.len() && end < config.content.len() {
-                    for line in &config.content[start..=end] {
-                        let trimmed = line.trim();
-                        if trimmed.starts_with(parts[1])
-                            && trimmed[parts[1].len()..].trim_start().starts_with('=')
-                        {
-                            if let Some(val) = line.split('=').nth(1) {
-                                value = val.trim().to_string();
-                                break;
-                            }
-                        }
+            if let Some(&(start, end)) = config.sections.get(parts[0])
+                && start < config.content.len()
+                && end < config.content.len()
+            {
+                for line in &config.content[start..=end] {
+                    let trimmed = line.trim();
+                    if trimmed.starts_with(parts[1])
+                        && trimmed[parts[1].len()..].trim_start().starts_with('=')
+                        && let Some(val) = line.split('=').nth(1)
+                    {
+                        value = val.trim().to_string();
+                        break;
                     }
                 }
             }
@@ -445,14 +444,11 @@ impl WidgetBuilder {
                             for line in &sourced[start..=end] {
                                 let trimmed = line.trim();
                                 if trimmed.starts_with(parts[1])
-                                    && trimmed[parts[1].len()..]
-                                        .trim_start()
-                                        .starts_with('=')
+                                    && trimmed[parts[1].len()..].trim_start().starts_with('=')
+                                    && let Some(val) = line.split('=').nth(1)
                                 {
-                                    if let Some(val) = line.split('=').nth(1) {
-                                        value = val.trim().to_string();
-                                        break;
-                                    }
+                                    value = val.trim().to_string();
+                                    break;
                                 }
                             }
                         }
@@ -467,48 +463,48 @@ impl WidgetBuilder {
         }
 
         if parts.len() > 1 {
-            if let Some(&(parent_start, parent_end)) = config.sections.get(category) {
-                if parent_start < config.content.len() && parent_end < config.content.len() {
-                    let subsection = format!("{} {{", parts[0]);
-                    let mut in_subsection = false;
+            if let Some(&(parent_start, parent_end)) = config.sections.get(category)
+                && parent_start < config.content.len()
+                && parent_end < config.content.len()
+            {
+                let subsection = format!("{} {{", parts[0]);
+                let mut in_subsection = false;
 
-                    for line in &config.content[parent_start..=parent_end] {
-                        let trimmed = line.trim();
-
-                        if trimmed == subsection {
-                            in_subsection = true;
-                            continue;
-                        }
-
-                        if in_subsection {
-                            if trimmed == "}" {
-                                break;
-                            }
-
-                            if trimmed.starts_with(parts[1])
-                                && trimmed[parts[1].len()..].trim_start().starts_with('=')
-                            {
-                                if let Some(val) = trimmed.split('=').nth(1) {
-                                    value = val.trim().to_string();
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        } else if let Some(&(start, end)) = config.sections.get(category) {
-            if start < config.content.len() && end < config.content.len() {
-                for line in &config.content[start..=end] {
+                for line in &config.content[parent_start..=parent_end] {
                     let trimmed = line.trim();
-                    if trimmed.starts_with(name)
-                        && trimmed[name.len()..].trim_start().starts_with('=')
-                    {
-                        if let Some(val) = line.split('=').nth(1) {
+
+                    if trimmed == subsection {
+                        in_subsection = true;
+                        continue;
+                    }
+
+                    if in_subsection {
+                        if trimmed == "}" {
+                            break;
+                        }
+
+                        if trimmed.starts_with(parts[1])
+                            && trimmed[parts[1].len()..].trim_start().starts_with('=')
+                            && let Some(val) = trimmed.split('=').nth(1)
+                        {
                             value = val.trim().to_string();
                             break;
                         }
                     }
+                }
+            }
+        } else if let Some(&(start, end)) = config.sections.get(category)
+            && start < config.content.len()
+            && end < config.content.len()
+        {
+            for line in &config.content[start..=end] {
+                let trimmed = line.trim();
+                if trimmed.starts_with(name)
+                    && trimmed[name.len()..].trim_start().starts_with('=')
+                    && let Some(val) = line.split('=').nth(1)
+                {
+                    value = val.trim().to_string();
+                    break;
                 }
             }
         }
@@ -538,11 +534,10 @@ impl WidgetBuilder {
 
                                     if trimmed.starts_with(parts[1])
                                         && trimmed[parts[1].len()..].trim_start().starts_with('=')
+                                        && let Some(val) = trimmed.split('=').nth(1)
                                     {
-                                        if let Some(val) = trimmed.split('=').nth(1) {
-                                            value = val.trim().to_string();
-                                            break;
-                                        }
+                                        value = val.trim().to_string();
+                                        break;
                                     }
                                 }
                             }
@@ -551,11 +546,10 @@ impl WidgetBuilder {
                                 let trimmed = line.trim();
                                 if trimmed.starts_with(name)
                                     && trimmed[name.len()..].trim_start().starts_with('=')
+                                    && let Some(val) = line.split('=').nth(1)
                                 {
-                                    if let Some(val) = line.split('=').nth(1) {
-                                        value = val.trim().to_string();
-                                        break;
-                                    }
+                                    value = val.trim().to_string();
+                                    break;
                                 }
                             }
                         }

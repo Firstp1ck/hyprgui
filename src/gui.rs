@@ -276,10 +276,10 @@ impl ConfigGUI {
         gui.borrow()
             .load_config_button
             .connect_clicked(move |button| {
-                if let Some(popover) = button.ancestor(gtk::Popover::static_type()) {
-                    if let Some(popover) = popover.downcast_ref::<gtk::Popover>() {
-                        popover.popdown();
-                    }
+                if let Some(popover) = button.ancestor(gtk::Popover::static_type())
+                    && let Some(popover) = popover.downcast_ref::<gtk::Popover>()
+                {
+                    popover.popdown();
                 }
 
                 let gui = Rc::clone(&gui_clone);
@@ -294,12 +294,11 @@ impl ConfigGUI {
                         ],
                     );
 
-                    if file_chooser.run_future().await == gtk::ResponseType::Accept {
-                        if let Some(file) = file_chooser.file() {
-                            if let Some(path) = file.path() {
-                                gui.borrow_mut().load_hyprgui_config(&path);
-                            }
-                        }
+                    if file_chooser.run_future().await == gtk::ResponseType::Accept
+                        && let Some(file) = file_chooser.file()
+                        && let Some(path) = file.path()
+                    {
+                        gui.borrow_mut().load_hyprgui_config(&path);
                     }
                     file_chooser.close();
                 });
@@ -309,10 +308,10 @@ impl ConfigGUI {
         gui.borrow()
             .save_config_button
             .connect_clicked(move |button| {
-                if let Some(popover) = button.ancestor(gtk::Popover::static_type()) {
-                    if let Some(popover) = popover.downcast_ref::<gtk::Popover>() {
-                        popover.popdown();
-                    }
+                if let Some(popover) = button.ancestor(gtk::Popover::static_type())
+                    && let Some(popover) = popover.downcast_ref::<gtk::Popover>()
+                {
+                    popover.popdown();
                 }
 
                 let gui = Rc::clone(&gui_clone);
@@ -329,12 +328,11 @@ impl ConfigGUI {
 
                     file_chooser.set_current_name("hyprgui_config.json");
 
-                    if file_chooser.run_future().await == gtk::ResponseType::Accept {
-                        if let Some(file) = file_chooser.file() {
-                            if let Some(path) = file.path() {
-                                gui.borrow_mut().save_hyprgui_config(&path);
-                            }
-                        }
+                    if file_chooser.run_future().await == gtk::ResponseType::Accept
+                        && let Some(file) = file_chooser.file()
+                        && let Some(path) = file.path()
+                    {
+                        gui.borrow_mut().save_hyprgui_config(&path);
                     }
                     file_chooser.close();
                 });
@@ -350,13 +348,13 @@ impl ConfigGUI {
                         if parts.len() >= 2 {
                             let category = parts[0].to_string();
                             let name = parts[1..].join(":");
-                            if let Some(widget) = self.config_widgets.get(&category) {
-                                if let Some(option_widget) = widget.options.get(&name) {
-                                    self.set_widget_value(option_widget, &value);
-                                    self.changed_options
-                                        .borrow_mut()
-                                        .insert((category, name), value);
-                                }
+                            if let Some(widget) = self.config_widgets.get(&category)
+                                && let Some(option_widget) = widget.options.get(&name)
+                            {
+                                self.set_widget_value(option_widget, &value);
+                                self.changed_options
+                                    .borrow_mut()
+                                    .insert((category, name), value);
                             }
                         }
                     }
@@ -435,13 +433,12 @@ impl ConfigGUI {
         } else if let Some(dropdown) = widget.downcast_ref::<DropDown>() {
             let model = dropdown.model().unwrap();
             for i in 0..model.n_items() {
-                if let Some(item) = model.item(i) {
-                    if let Some(string_object) = item.downcast_ref::<gtk::StringObject>() {
-                        if string_object.string() == value {
-                            dropdown.set_selected(i);
-                            break;
-                        }
-                    }
+                if let Some(item) = model.item(i)
+                    && let Some(string_object) = item.downcast_ref::<gtk::StringObject>()
+                    && string_object.string() == value
+                {
+                    dropdown.set_selected(i);
+                    break;
                 }
             }
         }
@@ -515,11 +512,11 @@ impl ConfigGUI {
         self.content_box.append(&self.stack);
 
         self.stack.connect_visible_child_notify(move |stack| {
-            if let Some(child) = stack.visible_child() {
-                if let Some(scrolled_window) = child.downcast_ref::<ScrolledWindow>() {
-                    let adj = scrolled_window.vadjustment();
-                    adj.set_value(adj.lower());
-                }
+            if let Some(child) = stack.visible_child()
+                && let Some(scrolled_window) = child.downcast_ref::<ScrolledWindow>()
+            {
+                let adj = scrolled_window.vadjustment();
+                adj.set_value(adj.lower());
             }
         });
 

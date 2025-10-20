@@ -3,8 +3,8 @@ use gtk::{Box, Orientation, ScrolledWindow, Widget, prelude::*};
 use hyprparser::HyprlandConfig;
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::rc::Rc;
 use std::process::Command;
+use std::rc::Rc;
 
 use serde_json::Value;
 
@@ -1996,23 +1996,31 @@ impl ConfigWidget {
             if let (Some(list_mon_w), Some(list_ws_w)) = (
                 self.options.get("monitors:list_monitors"),
                 self.options.get("monitors:list_workspaces"),
+            ) && let (Some(list_mon), Some(list_ws)) = (
+                list_mon_w.downcast_ref::<gtk::ListBox>(),
+                list_ws_w.downcast_ref::<gtk::ListBox>(),
             ) {
-                if let (Some(list_mon), Some(list_ws)) = (
-                    list_mon_w.downcast_ref::<gtk::ListBox>(),
-                    list_ws_w.downcast_ref::<gtk::ListBox>(),
-                ) {
-                    // clear
-                    while let Some(row) = list_mon.first_child() {
-                        list_mon.remove(&row);
-                    }
-                    while let Some(row) = list_ws.first_child() {
-                        list_ws.remove(&row);
-                    }
+                // clear
+                while let Some(row) = list_mon.first_child() {
+                    list_mon.remove(&row);
+                }
+                while let Some(row) = list_ws.first_child() {
+                    list_ws.remove(&row);
+                }
 
-                    // Gather lines from aggregated content and sourced files
-                    let mut mon_lines: Vec<String> = Vec::new();
-                    let mut ws_lines: Vec<String> = Vec::new();
-                    for ln in &config.content {
+                // Gather lines from aggregated content and sourced files
+                let mut mon_lines: Vec<String> = Vec::new();
+                let mut ws_lines: Vec<String> = Vec::new();
+                for ln in &config.content {
+                    let t = ln.trim();
+                    if t.starts_with("monitor=") {
+                        mon_lines.push(t.to_string());
+                    } else if t.starts_with("workspace=") {
+                        ws_lines.push(t.to_string());
+                    }
+                }
+                for sourced in &config.sourced_content {
+                    for ln in sourced {
                         let t = ln.trim();
                         if t.starts_with("monitor=") {
                             mon_lines.push(t.to_string());
@@ -2020,373 +2028,380 @@ impl ConfigWidget {
                             ws_lines.push(t.to_string());
                         }
                     }
-                    for sourced in &config.sourced_content {
-                        for ln in sourced {
-                            let t = ln.trim();
-                            if t.starts_with("monitor=") {
-                                mon_lines.push(t.to_string());
-                            } else if t.starts_with("workspace=") {
-                                ws_lines.push(t.to_string());
-                            }
-                        }
-                    }
+                }
 
-                    // Determine available monitor names and modes via hyprctl -j monitors
-                    let mut monitor_names: Vec<String> = Vec::new();
-                    let mut name_to_modes: HashMap<String, Vec<String>> = HashMap::new();
-                    let mut all_modes: Vec<String> = vec!["preferred".to_string()];
-                    if let Ok(out) = Command::new("hyprctl").args(["-j", "monitors"]).output() {
-                        if out.status.success() {
-                            if let Ok(json) = serde_json::from_slice::<Value>(&out.stdout) {
-                                if let Some(arr) = json.as_array() {
-                                    for m in arr {
-                                        if let Some(name) = m.get("name").and_then(|v| v.as_str()) {
-                                            let name_str = name.to_string();
-                                            if !monitor_names.contains(&name_str) {
-                                                monitor_names.push(name_str.clone());
-                                            }
-                                            // collect availableModes if provided
-                                            let mut modes_for_this: Vec<String> = Vec::new();
-                                            if let Some(val) = m.get("availableModes").or_else(|| m.get("modes")) {
-                                                if let Some(s) = val.as_str() {
-                                                    for tok in s.split_whitespace() {
-                                                        let t = tok.trim().to_string();
-                                                        if !t.is_empty() && !modes_for_this.contains(&t) {
-                                                            modes_for_this.push(t.clone());
-                                                        }
-                                                    }
-                                                } else if let Some(arrm) = val.as_array() {
-                                                    for item in arrm {
-                                                        if let Some(s) = item.as_str() {
-                                                            let t = s.trim().to_string();
-                                                            if !t.is_empty() && !modes_for_this.contains(&t) {
-                                                                modes_for_this.push(t.clone());
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                            if !modes_for_this.is_empty() {
-                                                for mm in &modes_for_this {
-                                                    if !all_modes.contains(mm) {
-                                                        all_modes.push(mm.clone());
-                                                    }
-                                                }
-                                                name_to_modes.insert(name_str, modes_for_this);
+                // Determine available monitor names and modes via hyprctl -j monitors
+                let mut monitor_names: Vec<String> = Vec::new();
+                let mut name_to_modes: HashMap<String, Vec<String>> = HashMap::new();
+                let mut all_modes: Vec<String> = vec!["preferred".to_string()];
+                if let Ok(out) = Command::new("hyprctl").args(["-j", "monitors"]).output()
+                    && out.status.success()
+                    && let Ok(json) = serde_json::from_slice::<Value>(&out.stdout)
+                    && let Some(arr) = json.as_array()
+                {
+                    for m in arr {
+                        if let Some(name) = m.get("name").and_then(|v| v.as_str()) {
+                            let name_str = name.to_string();
+                            if !monitor_names.contains(&name_str) {
+                                monitor_names.push(name_str.clone());
+                            }
+                            // collect availableModes if provided
+                            let mut modes_for_this: Vec<String> = Vec::new();
+                            if let Some(val) = m.get("availableModes").or_else(|| m.get("modes")) {
+                                if let Some(s) = val.as_str() {
+                                    for tok in s.split_whitespace() {
+                                        let t = tok.trim().to_string();
+                                        if !t.is_empty() && !modes_for_this.contains(&t) {
+                                            modes_for_this.push(t.clone());
+                                        }
+                                    }
+                                } else if let Some(arrm) = val.as_array() {
+                                    for item in arrm {
+                                        if let Some(s) = item.as_str() {
+                                            let t = s.trim().to_string();
+                                            if !t.is_empty() && !modes_for_this.contains(&t) {
+                                                modes_for_this.push(t.clone());
                                             }
                                         }
                                     }
                                 }
                             }
-                        }
-                    }
-                    if monitor_names.is_empty() {
-                        // Fallback: infer names from existing lines
-                        for l in &mon_lines {
-                            if let Some(rest) = l.splitn(2, '=').nth(1) {
-                                if let Some(name) = rest.split(',').next() {
-                                    let name = name.trim();
-                                    if !name.is_empty() && !monitor_names.contains(&name.to_string()) {
-                                        monitor_names.push(name.to_string());
+                            if !modes_for_this.is_empty() {
+                                for mm in &modes_for_this {
+                                    if !all_modes.contains(mm) {
+                                        all_modes.push(mm.clone());
                                     }
                                 }
+                                name_to_modes.insert(name_str, modes_for_this);
                             }
                         }
                     }
+                }
+                if monitor_names.is_empty() {
+                    // Fallback: infer names from existing lines
+                    for l in &mon_lines {
+                        if let Some(rest) = l.split_once('=').map(|x| x.1)
+                            && let Some(name) = rest.split(',').next()
+                        {
+                            let name = name.trim();
+                            if !name.is_empty() && !monitor_names.contains(&name.to_string()) {
+                                monitor_names.push(name.to_string());
+                            }
+                        }
+                    }
+                }
 
-                    if mon_lines.is_empty() {
-                        let row = gtk::Label::new(Some("No monitors defined."));
-                        row.set_halign(gtk::Align::Start);
+                if mon_lines.is_empty() {
+                    let row = gtk::Label::new(Some("No monitors defined."));
+                    row.set_halign(gtk::Align::Start);
+                    list_mon.append(&row);
+                } else {
+                    for l in mon_lines {
+                        // monitor=NAME,MODE,POS,SCALE
+                        let mut name_opt: Option<String> = None;
+                        let mut mode = "".to_string();
+                        let mut pos = "".to_string();
+                        let mut scale = "".to_string();
+                        if let Some(rest) = l.split_once('=').map(|x| x.1) {
+                            let parts: Vec<&str> = rest.split(',').collect();
+                            if !parts.is_empty() {
+                                name_opt = Some(parts[0].trim().to_string());
+                            }
+                            if parts.len() >= 2 {
+                                mode = parts[1].trim().to_string();
+                            }
+                            if parts.len() >= 3 {
+                                pos = parts[2].trim().to_string();
+                            }
+                            if parts.len() >= 4 {
+                                scale = parts[3].trim().to_string();
+                            }
+                        }
+                        let row = Box::new(Orientation::Horizontal, 6);
+                        // Monitor dropdown
+                        let items = monitor_names.clone();
+                        let items_refs: Vec<&str> = items.iter().map(|s| s.as_str()).collect();
+                        let string_list = gtk::StringList::new(&items_refs);
+                        let dd = gtk::DropDown::new(Some(string_list), None::<gtk::Expression>);
+                        dd.set_width_request(140);
+                        dd.set_halign(gtk::Align::Start);
+                        if let Some(sel) = name_opt
+                            && let Some(model) = dd.model()
+                        {
+                            for i in 0..model.n_items() {
+                                if let Some(item) = model.item(i)
+                                    && let Some(obj) = item.downcast_ref::<gtk::StringObject>()
+                                    && obj.string() == sel
+                                {
+                                    dd.set_selected(i);
+                                    break;
+                                }
+                            }
+                        }
+                        row.append(&dd);
+                        // mode dropdown
+                        let mut modes_list: Vec<String> = vec!["preferred".to_string()];
+                        if let Some(model) = dd.model() {
+                            if let Some(item) = model.item(dd.selected())
+                                && let Some(obj) = item.downcast_ref::<gtk::StringObject>()
+                            {
+                                let sel = obj.string().to_string();
+                                if let Some(v) = name_to_modes.get(&sel) {
+                                    modes_list.extend(v.clone());
+                                } else {
+                                    modes_list.extend(all_modes.clone());
+                                }
+                            }
+                        } else {
+                            modes_list.extend(all_modes.clone());
+                        }
+                        let mut seen = std::collections::HashSet::new();
+                        modes_list.retain(|s| seen.insert(s.clone()));
+                        let modes_refs: Vec<&str> = modes_list.iter().map(|s| s.as_str()).collect();
+                        let modes_model = gtk::StringList::new(&modes_refs);
+                        let dd_mode =
+                            gtk::DropDown::new(Some(modes_model), None::<gtk::Expression>);
+                        dd_mode.set_width_request(220);
+                        if let Some(modelm) = dd_mode.model() {
+                            for i in 0..modelm.n_items() {
+                                if let Some(it) = modelm.item(i)
+                                    && let Some(obj) = it.downcast_ref::<gtk::StringObject>()
+                                    && obj.string() == mode
+                                {
+                                    dd_mode.set_selected(i);
+                                    break;
+                                }
+                            }
+                        }
+                        let e_pos = gtk::Entry::new();
+                        e_pos.set_placeholder_text(Some("pos e.g. 0x0 or auto"));
+                        e_pos.set_text(&pos);
+                        let e_scale = gtk::Entry::new();
+                        e_scale.set_placeholder_text(Some("scale e.g. 1"));
+                        e_scale.set_text(&scale);
+                        row.append(&dd_mode);
+                        row.append(&e_pos);
+                        row.append(&e_scale);
+                        // delete button
+                        let del_btn = gtk::Button::from_icon_name("window-close-symbolic");
+                        del_btn.set_has_frame(false);
+                        del_btn.add_css_class("flat");
+                        let list_ref = list_mon.clone();
+                        del_btn.connect_clicked(move |button| {
+                            if let Some(ancestor) = button.ancestor(gtk::ListBoxRow::static_type())
+                                && let Some(lb_row) = ancestor.downcast_ref::<gtk::ListBoxRow>()
+                            {
+                                list_ref.remove(lb_row);
+                            }
+                        });
+                        row.append(&del_btn);
                         list_mon.append(&row);
-                    } else {
-                        for l in mon_lines {
-                            // monitor=NAME,MODE,POS,SCALE
-                            let mut name_opt: Option<String> = None;
-                            let mut mode = "".to_string();
-                            let mut pos = "".to_string();
-                            let mut scale = "".to_string();
-                            if let Some(rest) = l.splitn(2, '=').nth(1) {
-                                let parts: Vec<&str> = rest.split(',').collect();
-                                if parts.len() >= 1 { name_opt = Some(parts[0].trim().to_string()); }
-                                if parts.len() >= 2 { mode = parts[1].trim().to_string(); }
-                                if parts.len() >= 3 { pos = parts[2].trim().to_string(); }
-                                if parts.len() >= 4 { scale = parts[3].trim().to_string(); }
-                            }
-                            let row = Box::new(Orientation::Horizontal, 6);
-                            // Monitor dropdown
-                            let items = monitor_names.clone();
-                            let items_refs: Vec<&str> = items.iter().map(|s| s.as_str()).collect();
-                            let string_list = gtk::StringList::new(&items_refs);
-                            let dd = gtk::DropDown::new(Some(string_list), None::<gtk::Expression>);
-                            dd.set_width_request(140);
-                            dd.set_halign(gtk::Align::Start);
-                            if let Some(sel) = name_opt {
-                                if let Some(model) = dd.model() {
-                                    for i in 0..model.n_items() {
-                                        if let Some(item) = model.item(i) {
-                                            if let Some(obj) = item.downcast_ref::<gtk::StringObject>() {
-                                                if obj.string() == sel { dd.set_selected(i); break; }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                            row.append(&dd);
-                            // mode dropdown
-                            let mut modes_list: Vec<String> = vec!["preferred".to_string()];
-                            if let Some(model) = dd.model() {
-                                if let Some(item) = model.item(dd.selected()) {
-                                    if let Some(obj) = item.downcast_ref::<gtk::StringObject>() {
-                                        let sel = obj.string().to_string();
-                                        if let Some(v) = name_to_modes.get(&sel) {
-                                            modes_list.extend(v.clone());
-                                        } else {
-                                            modes_list.extend(all_modes.clone());
-                                        }
-                                    }
-                                }
-                            } else {
-                                modes_list.extend(all_modes.clone());
-                            }
-                            let mut seen = std::collections::HashSet::new();
-                            modes_list.retain(|s| seen.insert(s.clone()));
-                            let modes_refs: Vec<&str> = modes_list.iter().map(|s| s.as_str()).collect();
-                            let modes_model = gtk::StringList::new(&modes_refs);
-                            let dd_mode = gtk::DropDown::new(Some(modes_model), None::<gtk::Expression>);
-                            dd_mode.set_width_request(220);
-                            if let Some(modelm) = dd_mode.model() {
-                                for i in 0..modelm.n_items() {
-                                    if let Some(it) = modelm.item(i) {
-                                        if let Some(obj) = it.downcast_ref::<gtk::StringObject>() {
-                                            if obj.string() == mode { dd_mode.set_selected(i); break; }
-                                        }
-                                    }
-                                }
-                            }
-                            let e_pos = gtk::Entry::new();
-                            e_pos.set_placeholder_text(Some("pos e.g. 0x0 or auto"));
-                            e_pos.set_text(&pos);
-                            let e_scale = gtk::Entry::new();
-                            e_scale.set_placeholder_text(Some("scale e.g. 1"));
-                            e_scale.set_text(&scale);
-                            row.append(&dd_mode);
-                            row.append(&e_pos);
-                            row.append(&e_scale);
-                            // delete button
-                            let del_btn = gtk::Button::from_icon_name("window-close-symbolic");
-                            del_btn.set_has_frame(false);
-                            del_btn.add_css_class("flat");
-                            let list_ref = list_mon.clone();
-                            del_btn.connect_clicked(move |button| {
-                                if let Some(ancestor) = button.ancestor(gtk::ListBoxRow::static_type()) {
-                                    if let Some(lb_row) = ancestor.downcast_ref::<gtk::ListBoxRow>() {
-                                        list_ref.remove(lb_row);
-                                    }
-                                }
-                            });
-                            row.append(&del_btn);
-                            list_mon.append(&row);
-                        }
                     }
+                }
 
-                    // Workspaces: workspace number dropdown, monitor dropdown, default switch
-                    if ws_lines.is_empty() {
-                        let row = gtk::Label::new(Some("No workspaces mapped to monitors."));
-                        row.set_halign(gtk::Align::Start);
+                // Workspaces: workspace number dropdown, monitor dropdown, default switch
+                if ws_lines.is_empty() {
+                    let row = gtk::Label::new(Some("No workspaces mapped to monitors."));
+                    row.set_halign(gtk::Align::Start);
+                    list_ws.append(&row);
+                } else {
+                    for l in ws_lines {
+                        // workspace=NUM,monitor:NAME,default:true
+                        let mut ws_num = "1".to_string();
+                        let mut mon_name: Option<String> = None;
+                        let mut is_default = false;
+                        if let Some(rest) = l.split_once('=').map(|x| x.1) {
+                            for part in rest.split(',') {
+                                let p = part.trim();
+                                if let Some(num) = p.strip_prefix("monitor:") {
+                                    mon_name = Some(num.to_string());
+                                } else if let Some(def) = p.strip_prefix("default:") {
+                                    is_default = def == "true";
+                                } else if p.chars().all(|c| c.is_ascii_digit()) {
+                                    ws_num = p.to_string();
+                                }
+                            }
+                        }
+                        let row = Box::new(Orientation::Horizontal, 6);
+                        // workspace number dropdown
+                        let ws_numbers: Vec<String> = (1..=20).map(|n| n.to_string()).collect();
+                        let ws_num_refs: Vec<&str> =
+                            ws_numbers.iter().map(|s| s.as_str()).collect();
+                        let ws_list = gtk::StringList::new(&ws_num_refs);
+                        let ws_dd = gtk::DropDown::new(Some(ws_list), None::<gtk::Expression>);
+                        ws_dd.set_width_request(80);
+                        if let Some(model) = ws_dd.model() {
+                            for i in 0..model.n_items() {
+                                if let Some(item) = model.item(i)
+                                    && let Some(obj) = item.downcast_ref::<gtk::StringObject>()
+                                    && obj.string() == ws_num
+                                {
+                                    ws_dd.set_selected(i);
+                                    break;
+                                }
+                            }
+                        }
+                        row.append(&ws_dd);
+                        // monitor dropdown
+                        let items = monitor_names.clone();
+                        let items_refs: Vec<&str> = items.iter().map(|s| s.as_str()).collect();
+                        let mon_list = gtk::StringList::new(&items_refs);
+                        let mon_dd = gtk::DropDown::new(Some(mon_list), None::<gtk::Expression>);
+                        mon_dd.set_width_request(140);
+                        if let Some(sel) = mon_name
+                            && let Some(model) = mon_dd.model()
+                        {
+                            for i in 0..model.n_items() {
+                                if let Some(item) = model.item(i)
+                                    && let Some(obj) = item.downcast_ref::<gtk::StringObject>()
+                                    && obj.string() == sel
+                                {
+                                    mon_dd.set_selected(i);
+                                    break;
+                                }
+                            }
+                        }
+                        row.append(&mon_dd);
+                        // default switch
+                        let sw = gtk::Switch::new();
+                        sw.set_halign(gtk::Align::Start);
+                        sw.set_active(is_default);
+                        row.append(&sw);
+                        // delete button
+                        let del_btn = gtk::Button::from_icon_name("window-close-symbolic");
+                        del_btn.set_has_frame(false);
+                        del_btn.add_css_class("flat");
+                        let list_ref = list_ws.clone();
+                        del_btn.connect_clicked(move |button| {
+                            if let Some(ancestor) = button.ancestor(gtk::ListBoxRow::static_type())
+                                && let Some(lb_row) = ancestor.downcast_ref::<gtk::ListBoxRow>()
+                            {
+                                list_ref.remove(lb_row);
+                            }
+                        });
+                        row.append(&del_btn);
                         list_ws.append(&row);
-                    } else {
-                        for l in ws_lines {
-                            // workspace=NUM,monitor:NAME,default:true
-                            let mut ws_num = "1".to_string();
-                            let mut mon_name: Option<String> = None;
-                            let mut is_default = false;
-                            if let Some(rest) = l.splitn(2, '=').nth(1) {
-                                for part in rest.split(',') {
-                                    let p = part.trim();
-                                    if let Some(num) = p.strip_prefix("monitor:") {
-                                        mon_name = Some(num.to_string());
-                                    } else if let Some(def) = p.strip_prefix("default:") {
-                                        is_default = def == "true";
-                                    } else if p.chars().all(|c| c.is_ascii_digit()) {
-                                        ws_num = p.to_string();
-                                    }
-                                }
-                            }
-                            let row = Box::new(Orientation::Horizontal, 6);
-                            // workspace number dropdown
-                            let ws_numbers: Vec<String> = (1..=20).map(|n| n.to_string()).collect();
-                            let ws_num_refs: Vec<&str> = ws_numbers.iter().map(|s| s.as_str()).collect();
-                            let ws_list = gtk::StringList::new(&ws_num_refs);
-                            let ws_dd = gtk::DropDown::new(Some(ws_list), None::<gtk::Expression>);
-                            ws_dd.set_width_request(80);
-                            if let Some(model) = ws_dd.model() {
-                                for i in 0..model.n_items() {
-                                    if let Some(item) = model.item(i) {
-                                        if let Some(obj) = item.downcast_ref::<gtk::StringObject>() {
-                                            if obj.string() == ws_num { ws_dd.set_selected(i); break; }
-                                        }
-                                    }
-                                }
-                            }
-                            row.append(&ws_dd);
-                            // monitor dropdown
-                            let items = monitor_names.clone();
-                            let items_refs: Vec<&str> = items.iter().map(|s| s.as_str()).collect();
-                            let mon_list = gtk::StringList::new(&items_refs);
-                            let mon_dd = gtk::DropDown::new(Some(mon_list), None::<gtk::Expression>);
-                            mon_dd.set_width_request(140);
-                            if let Some(sel) = mon_name {
-                                if let Some(model) = mon_dd.model() {
-                                    for i in 0..model.n_items() {
-                                        if let Some(item) = model.item(i) {
-                                            if let Some(obj) = item.downcast_ref::<gtk::StringObject>() {
-                                                if obj.string() == sel { mon_dd.set_selected(i); break; }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                            row.append(&mon_dd);
-                            // default switch
-                            let sw = gtk::Switch::new();
-                            sw.set_halign(gtk::Align::Start);
-                            sw.set_active(is_default);
-                            row.append(&sw);
-                            // delete button
-                            let del_btn = gtk::Button::from_icon_name("window-close-symbolic");
-                            del_btn.set_has_frame(false);
-                            del_btn.add_css_class("flat");
-                            let list_ref = list_ws.clone();
-                            del_btn.connect_clicked(move |button| {
-                                if let Some(ancestor) = button.ancestor(gtk::ListBoxRow::static_type()) {
-                                    if let Some(lb_row) = ancestor.downcast_ref::<gtk::ListBoxRow>() {
-                                        list_ref.remove(lb_row);
-                                    }
-                                }
-                            });
-                            row.append(&del_btn);
-                            list_ws.append(&row);
-                        }
                     }
+                }
 
-                    // Wire add buttons
-                    if let (Some(add_mon_w), Some(add_ws_w)) = (
-                        self.options.get("monitors:add_monitor"),
-                        self.options.get("monitors:add_workspace"),
-                    ) {
-                        if let (Some(add_mon), Some(add_ws)) = (
-                            add_mon_w.downcast_ref::<gtk::Button>(),
-                            add_ws_w.downcast_ref::<gtk::Button>(),
-                        ) {
-                            let list_clone = list_mon.clone();
-                            let monitor_names_clone = monitor_names.clone();
-                            let name_to_modes_clone = name_to_modes.clone();
-                            let all_modes_clone = all_modes.clone();
-                            add_mon.connect_clicked(move |_| {
-                                let row = Box::new(Orientation::Horizontal, 6);
-                                let items = monitor_names_clone.clone();
-                                let items_refs: Vec<&str> = items.iter().map(|s| s.as_str()).collect();
-                                let string_list = gtk::StringList::new(&items_refs);
-                                let dd = gtk::DropDown::new(Some(string_list), None::<gtk::Expression>);
-                                dd.set_width_request(140);
-                                row.append(&dd);
-                                // initial modes
-                                let mut modes_list: Vec<String> = vec!["preferred".to_string()];
-                                modes_list.extend(all_modes_clone.clone());
-                                let mut seen = std::collections::HashSet::new();
-                                modes_list.retain(|s| seen.insert(s.clone()));
-                                let modes_refs: Vec<&str> = modes_list.iter().map(|s| s.as_str()).collect();
-                                let modes_model = gtk::StringList::new(&modes_refs);
-                                let dd_mode = gtk::DropDown::new(Some(modes_model), None::<gtk::Expression>);
-                                dd_mode.set_width_request(220);
-                                // update on monitor change
-                                let dd_mode_clone = dd_mode.clone();
-                                let name_to_modes_local = name_to_modes_clone.clone();
-                                let all_modes_local = all_modes_clone.clone();
-                                dd.connect_selected_notify(move |sel_dd| {
-                                    let mut modes_list: Vec<String> = vec!["preferred".to_string()];
-                                    if let Some(item) = sel_dd.selected_item() {
-                                        if let Some(obj) = item.downcast_ref::<gtk::StringObject>() {
-                                            let sel = obj.string().to_string();
-                                            if let Some(v) = name_to_modes_local.get(&sel) {
-                                                modes_list.extend(v.clone());
-                                            } else {
-                                                modes_list.extend(all_modes_local.clone());
-                                            }
-                                        }
+                // Wire add buttons
+                if let (Some(add_mon_w), Some(add_ws_w)) = (
+                    self.options.get("monitors:add_monitor"),
+                    self.options.get("monitors:add_workspace"),
+                ) && let (Some(add_mon), Some(add_ws)) = (
+                    add_mon_w.downcast_ref::<gtk::Button>(),
+                    add_ws_w.downcast_ref::<gtk::Button>(),
+                ) {
+                    let list_clone = list_mon.clone();
+                    let monitor_names_clone = monitor_names.clone();
+                    let name_to_modes_clone = name_to_modes.clone();
+                    let all_modes_clone = all_modes.clone();
+                    add_mon.connect_clicked(move |_| {
+                        let row = Box::new(Orientation::Horizontal, 6);
+                        let items = monitor_names_clone.clone();
+                        let items_refs: Vec<&str> = items.iter().map(|s| s.as_str()).collect();
+                        let string_list = gtk::StringList::new(&items_refs);
+                        let dd = gtk::DropDown::new(Some(string_list), None::<gtk::Expression>);
+                        dd.set_width_request(140);
+                        row.append(&dd);
+                        // initial modes
+                        let mut modes_list: Vec<String> = vec!["preferred".to_string()];
+                        modes_list.extend(all_modes_clone.clone());
+                        let mut seen = std::collections::HashSet::new();
+                        modes_list.retain(|s| seen.insert(s.clone()));
+                        let modes_refs: Vec<&str> = modes_list.iter().map(|s| s.as_str()).collect();
+                        let modes_model = gtk::StringList::new(&modes_refs);
+                        let dd_mode =
+                            gtk::DropDown::new(Some(modes_model), None::<gtk::Expression>);
+                        dd_mode.set_width_request(220);
+                        // update on monitor change
+                        let dd_mode_clone = dd_mode.clone();
+                        let name_to_modes_local = name_to_modes_clone.clone();
+                        let all_modes_local = all_modes_clone.clone();
+                        dd.connect_selected_notify(move |sel_dd| {
+                            let mut modes_list: Vec<String> = vec!["preferred".to_string()];
+                            if let Some(item) = sel_dd.selected_item() {
+                                if let Some(obj) = item.downcast_ref::<gtk::StringObject>() {
+                                    let sel = obj.string().to_string();
+                                    if let Some(v) = name_to_modes_local.get(&sel) {
+                                        modes_list.extend(v.clone());
                                     } else {
                                         modes_list.extend(all_modes_local.clone());
                                     }
-                                    let mut seen = std::collections::HashSet::new();
-                                    modes_list.retain(|s| seen.insert(s.clone()));
-                                    let modes_refs: Vec<&str> = modes_list.iter().map(|s| s.as_str()).collect();
-                                    let new_model = gtk::StringList::new(&modes_refs);
-                                    dd_mode_clone.set_model(Some(&new_model));
-                                    dd_mode_clone.set_selected(0);
-                                });
-                                let e_pos = gtk::Entry::new();
-                                e_pos.set_placeholder_text(Some("pos e.g. 0x0 or auto"));
-                                e_pos.set_text("auto");
-                                let e_scale = gtk::Entry::new();
-                                e_scale.set_placeholder_text(Some("scale e.g. 1"));
-                                e_scale.set_text("1");
-                                row.append(&dd_mode);
-                                row.append(&e_pos);
-                                row.append(&e_scale);
-                                // X button
-                                let del_btn = gtk::Button::from_icon_name("window-close-symbolic");
-                                del_btn.set_has_frame(false);
-                                del_btn.add_css_class("flat");
-                                let list_ref = list_clone.clone();
-                                del_btn.connect_clicked(move |button| {
-                                    if let Some(ancestor) = button.ancestor(gtk::ListBoxRow::static_type()) {
-                                        if let Some(lb_row) = ancestor.downcast_ref::<gtk::ListBoxRow>() {
-                                            list_ref.remove(lb_row);
-                                        }
-                                    }
-                                });
-                                row.append(&del_btn);
-                                list_clone.append(&row);
-                            });
+                                }
+                            } else {
+                                modes_list.extend(all_modes_local.clone());
+                            }
+                            let mut seen = std::collections::HashSet::new();
+                            modes_list.retain(|s| seen.insert(s.clone()));
+                            let modes_refs: Vec<&str> =
+                                modes_list.iter().map(|s| s.as_str()).collect();
+                            let new_model = gtk::StringList::new(&modes_refs);
+                            dd_mode_clone.set_model(Some(&new_model));
+                            dd_mode_clone.set_selected(0);
+                        });
+                        let e_pos = gtk::Entry::new();
+                        e_pos.set_placeholder_text(Some("pos e.g. 0x0 or auto"));
+                        e_pos.set_text("auto");
+                        let e_scale = gtk::Entry::new();
+                        e_scale.set_placeholder_text(Some("scale e.g. 1"));
+                        e_scale.set_text("1");
+                        row.append(&dd_mode);
+                        row.append(&e_pos);
+                        row.append(&e_scale);
+                        // X button
+                        let del_btn = gtk::Button::from_icon_name("window-close-symbolic");
+                        del_btn.set_has_frame(false);
+                        del_btn.add_css_class("flat");
+                        let list_ref = list_clone.clone();
+                        del_btn.connect_clicked(move |button| {
+                            if let Some(ancestor) = button.ancestor(gtk::ListBoxRow::static_type())
+                                && let Some(lb_row) = ancestor.downcast_ref::<gtk::ListBoxRow>()
+                            {
+                                list_ref.remove(lb_row);
+                            }
+                        });
+                        row.append(&del_btn);
+                        list_clone.append(&row);
+                    });
 
-                            let list_clone = list_ws.clone();
-                            let monitor_names_clone = monitor_names.clone();
-                            add_ws.connect_clicked(move |_| {
-                                let row = Box::new(Orientation::Horizontal, 6);
-                                let ws_numbers: Vec<String> = (1..=20).map(|n| n.to_string()).collect();
-                                let ws_num_refs: Vec<&str> = ws_numbers.iter().map(|s| s.as_str()).collect();
-                                let ws_list = gtk::StringList::new(&ws_num_refs);
-                                let ws_dd = gtk::DropDown::new(Some(ws_list), None::<gtk::Expression>);
-                                ws_dd.set_width_request(80);
-                                row.append(&ws_dd);
-                                let items = monitor_names_clone.clone();
-                                let items_refs: Vec<&str> = items.iter().map(|s| s.as_str()).collect();
-                                let mon_list = gtk::StringList::new(&items_refs);
-                                let mon_dd = gtk::DropDown::new(Some(mon_list), None::<gtk::Expression>);
-                                mon_dd.set_width_request(140);
-                                row.append(&mon_dd);
-                                let sw = gtk::Switch::new();
-                                sw.set_active(true);
-                                row.append(&sw);
-                                // X button
-                                let del_btn = gtk::Button::from_icon_name("window-close-symbolic");
-                                del_btn.set_has_frame(false);
-                                del_btn.add_css_class("flat");
-                                let list_ref = list_clone.clone();
-                                del_btn.connect_clicked(move |button| {
-                                    if let Some(ancestor) = button.ancestor(gtk::ListBoxRow::static_type()) {
-                                        if let Some(lb_row) = ancestor.downcast_ref::<gtk::ListBoxRow>() {
-                                            list_ref.remove(lb_row);
-                                        }
-                                    }
-                                });
-                                row.append(&del_btn);
-                                list_clone.append(&row);
-                            });
+                    let list_clone = list_ws.clone();
+                    let monitor_names_clone = monitor_names.clone();
+                    add_ws.connect_clicked(move |_| {
+                        let row = Box::new(Orientation::Horizontal, 6);
+                        let ws_numbers: Vec<String> = (1..=20).map(|n| n.to_string()).collect();
+                        let ws_num_refs: Vec<&str> =
+                            ws_numbers.iter().map(|s| s.as_str()).collect();
+                        let ws_list = gtk::StringList::new(&ws_num_refs);
+                        let ws_dd = gtk::DropDown::new(Some(ws_list), None::<gtk::Expression>);
+                        ws_dd.set_width_request(80);
+                        row.append(&ws_dd);
+                        let items = monitor_names_clone.clone();
+                        let items_refs: Vec<&str> = items.iter().map(|s| s.as_str()).collect();
+                        let mon_list = gtk::StringList::new(&items_refs);
+                        let mon_dd = gtk::DropDown::new(Some(mon_list), None::<gtk::Expression>);
+                        mon_dd.set_width_request(140);
+                        row.append(&mon_dd);
+                        let sw = gtk::Switch::new();
+                        sw.set_active(true);
+                        row.append(&sw);
+                        // X button
+                        let del_btn = gtk::Button::from_icon_name("window-close-symbolic");
+                        del_btn.set_has_frame(false);
+                        del_btn.add_css_class("flat");
+                        let list_ref = list_clone.clone();
+                        del_btn.connect_clicked(move |button| {
+                            if let Some(ancestor) = button.ancestor(gtk::ListBoxRow::static_type())
+                                && let Some(lb_row) = ancestor.downcast_ref::<gtk::ListBoxRow>()
+                            {
+                                list_ref.remove(lb_row);
+                            }
+                        });
+                        row.append(&del_btn);
+                        list_clone.append(&row);
+                    });
 
-                            // per-row X buttons handle deletion; no section-level delete
-                        }
-                    }
+                    // per-row X buttons handle deletion; no section-level delete
                 }
             }
             return;

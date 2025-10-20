@@ -12,16 +12,6 @@ Comes with a custom hyprparser for Hyprland's configuration file.
 
 </div>
 
-> [!CAUTION]
-> This was a backup repository for [HyprUtils/hyprgui]. 
-> It may be not fully up-to-date.
-> It is not recommended to run this code.
-
-> INFO:
-> Currently Testing and bringing it up to date.
-
-[HyprUtils/hyprgui]: https://github.com/HyprUtils-Archive/hyprgui
-
 Install the package with:
 ```bash
 git clone https://github.com/Firstp1ck/hyprgui.git
@@ -43,8 +33,6 @@ The `setup.sh` script automates the installation process by:
 4. Compile the app with `cargo build --release`, run it directly with `cargo run --release` or use `setup.sh` script.
 
 ## Credits:
-- [Nyx](https://github.com/nnyyxxxx) - Implementing the parser, rest of the GUI, and maintaining the project
-- [Adam](https://github.com/adamperkowski) - Implementing the base GUI, maintaining the AUR packages and the project
 - [Vaxry](https://github.com/vaxerski) - Hyprland
 - [rust-gtk](https://github.com/gtk-rs/gtk4-rs) - The GTK4 library
 - [Hyprland](https://github.com/hyprwm/Hyprland) - The wayland compositor
